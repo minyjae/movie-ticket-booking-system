@@ -40,7 +40,7 @@ export class AdminDashboard {
     this.screenService.getAll().subscribe({ next: (data) => this.screens.set(data) });
   }
 
-  activeTab = signal<'banner' | 'movie' | 'showtime' | 'manage' | 'screens'>('movie');
+  activeTab = signal<'banner' | 'movie' | 'showtime' | 'manage' | 'screens' | 'movies'>('movie');
 
   SeatStatus = SeatStatus;
   SeatType = SeatType;
@@ -88,6 +88,21 @@ export class AdminDashboard {
 
   editingBanner = signal<Banner | null>(null);
   editForm = { title: '', tagline: '', genre: null as string | null };
+
+  // ── Movie List/Edit tab ──
+  editingMovie = signal<Movie | null>(null);
+  editMovieForm = {
+    title: '', plot: '', price: null as number | null,
+    durationHours: 0, durationMinutes: 0, durationSeconds: 0,
+    category: null as MovieCategory | null,
+  };
+  movieListMessage = signal('');
+  movieListError   = signal('');
+  movieDeleteConfirmId = signal<string | null>(null);
+  movieDeleteLoading   = signal(false);
+  editPosterFile: File | null = null;
+  editPosterPreviewUrl = signal('');
+  editPosterLoading = signal(false);
 
   // ── Manage Showtimes tab ──
   allShowtimes = signal<Showtime[]>([]);
@@ -222,6 +237,119 @@ export class AdminDashboard {
     this.movieForm = { title: '', plot: '', price: null, durationHours: 0, durationMinutes: 0, durationSeconds: 0, category: null };
     this.posterFile = null;
     this.posterPreviewUrl.set('');
+  }
+
+  // ── Movie List/Edit methods ──
+  private parseDuration(d: string): { h: number; m: number; s: number } {
+    const parts = (d ?? '00:00:00').split(':').map(Number);
+    return { h: parts[0] || 0, m: parts[1] || 0, s: parts[2] || 0 };
+  }
+
+  startEditMovie(movie: Movie) {
+    const dur = this.parseDuration(movie.duration as unknown as string);
+    this.editMovieForm = {
+      title: movie.title,
+      plot: movie.plot,
+      price: movie.price,
+      durationHours: dur.h,
+      durationMinutes: dur.m,
+      durationSeconds: dur.s,
+      category: movie.category,
+    };
+    this.editPosterFile = null;
+    this.editPosterPreviewUrl.set('');
+    this.movieListMessage.set('');
+    this.movieListError.set('');
+    this.editingMovie.set(movie);
+  }
+
+  cancelEditMovie() {
+    this.editingMovie.set(null);
+  }
+
+  saveEditMovie() {
+    const movie = this.editingMovie();
+    if (!movie) return;
+    this.movieListMessage.set('');
+    this.movieListError.set('');
+
+    const body = {
+      id: movie.id,
+      title: this.editMovieForm.title || undefined,
+      plot: this.editMovieForm.plot || undefined,
+      price: this.editMovieForm.price ?? undefined,
+      duration: [
+        this.editMovieForm.durationHours,
+        this.editMovieForm.durationMinutes,
+        this.editMovieForm.durationSeconds,
+      ].map((v) => String(v).padStart(2, '0')).join(':') || undefined,
+      category: this.editMovieForm.category ?? undefined,
+    };
+
+    this.http.put<Movie>(`${this.moviesUrl}`, body, { headers: this.headers }).subscribe({
+      next: (updated) => {
+        this.movies.update((list) => list.map((m) => (m.id === updated.id ? updated : m)));
+        this.editingMovie.set(updated);
+        this.movieListMessage.set('บันทึกข้อมูลสำเร็จ');
+      },
+      error: (err) => this.movieListError.set(err.error?.error ?? 'เกิดข้อผิดพลาด'),
+    });
+  }
+
+  onEditPosterSelected(event: Event) {
+    const file = (event.target as HTMLInputElement).files?.[0];
+    if (!file) return;
+    this.editPosterFile = file;
+    this.editPosterPreviewUrl.set(URL.createObjectURL(file));
+    this.uploadEditPoster();
+  }
+
+  uploadEditPoster() {
+    const movie = this.editingMovie();
+    if (!movie || !this.editPosterFile) return;
+    this.editPosterLoading.set(true);
+    const form = new FormData();
+    form.append('file', this.editPosterFile);
+    this.http.post<Movie>(`${this.moviesUrl}/${movie.id}/poster`, form, { headers: this.headers }).subscribe({
+      next: (updated) => {
+        this.movies.update((list) => list.map((m) => (m.id === updated.id ? updated : m)));
+        this.editingMovie.set(updated);
+        this.editPosterLoading.set(false);
+        this.movieListMessage.set('อัปโหลดโปสเตอร์สำเร็จ');
+      },
+      error: () => {
+        this.movieListError.set('อัปโหลดโปสเตอร์ไม่สำเร็จ');
+        this.editPosterLoading.set(false);
+      },
+    });
+  }
+
+  askDeleteMovie(id: string) {
+    this.movieDeleteConfirmId.set(id);
+  }
+
+  cancelDeleteMovie() {
+    this.movieDeleteConfirmId.set(null);
+  }
+
+  confirmDeleteMovie(id: string) {
+    this.movieDeleteLoading.set(true);
+    this.movieListMessage.set('');
+    this.movieListError.set('');
+    this.http.delete(`${this.moviesUrl}/${id}`, { headers: this.headers }).subscribe({
+      next: () => {
+        this.movies.update((list) => list.filter((m) => m.id !== id));
+        if (this.editingMovie()?.id === id) this.editingMovie.set(null);
+        this.movieDeleteConfirmId.set(null);
+        this.movieDeleteLoading.set(false);
+        this.movieListMessage.set('ลบหนังสำเร็จ');
+      },
+      error: (err) => {
+        this.movieListError.set(err.error?.error ?? 'ไม่สามารถลบหนังได้');
+        this.movieDeleteConfirmId.set(null);
+        this.movieDeleteLoading.set(false);
+      },
+    });
   }
 
   // ── Manage Showtimes methods ──

@@ -11,4 +11,5 @@ public interface ISeatRepository
     Task AddRangeAsync(IEnumerable<Seat> seats);
     Task UpdateAsync(Seat seat); // EF Core Track การเปลี่ยนแปลงเอง
     Task DeleteByShowtimeIdAsync(Guid showtimeId);
+    Task DeleteByMovieIdAsync(Guid movieId);
 }

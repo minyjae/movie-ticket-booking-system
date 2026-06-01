@@ -41,4 +41,11 @@ public class ShowtimeRepository : IShowtimeRepository
         _context.Showtimes.Remove(showtime);
         await _context.SaveChangesAsync();
     }
+
+    public async Task DeleteByMovieIdAsync(Guid movieId)
+    {
+        await _context.Showtimes
+            .Where(s => s.MovieId == movieId)
+            .ExecuteDeleteAsync();
+    }
 }

@@ -10,4 +10,5 @@ public interface IMovieRepository
     Task<Movie?> CheckMovieExistAsync(string title);
     Task AddAsync(Movie movie);
     Task UpdateAsync(Movie movie);
+    Task DeleteAsync(Guid id);
 }

@@ -9,4 +9,5 @@ public interface IMovieService
     Task<MovieDto> CreateAsync(CreateMovieDto dto, IFormFile poster, string webRootPath);
     Task<MovieDto?> UpdateAsync(UpdateMovieDto dto);
     Task<MovieDto> UploadPosterAsync(Guid movieId, IFormFile file, string webRootPath);
+    Task DeleteAsync(Guid id, string webRootPath);
 }

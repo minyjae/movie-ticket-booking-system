@@ -62,6 +62,14 @@ public class MoviesController : ControllerBase
         return Ok(movie);
     }
 
+    [HttpDelete("{id}")]         // DELETE /api/movies/{id}
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> Delete(Guid id)
+    {
+        await _movieService.DeleteAsync(id, _env.WebRootPath);
+        return NoContent();
+    }
+
     [HttpPut]
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Update([FromBody] UpdateMovieDto dto)

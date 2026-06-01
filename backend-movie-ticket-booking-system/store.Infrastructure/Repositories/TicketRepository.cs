@@ -35,4 +35,14 @@ public class TicketRepository : ITicketRepository
             .Where(t => t.ShowtimeId == showtimeId)
             .ExecuteDeleteAsync();
     }
+
+    public async Task DeleteByMovieIdAsync(Guid movieId)
+    {
+        var showtimeIds = _context.Showtimes
+            .Where(s => s.MovieId == movieId)
+            .Select(s => s.Id);
+        await _context.Tickets
+            .Where(t => showtimeIds.Contains(t.ShowtimeId))
+            .ExecuteDeleteAsync();
+    }
 }

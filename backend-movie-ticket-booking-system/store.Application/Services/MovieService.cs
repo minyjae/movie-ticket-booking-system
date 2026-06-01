@@ -3,16 +3,27 @@ using store.Application.DTOs;
 using store.Application.Interfaces;
 using store.Domain.Entities;
 using store.Domain.Interfaces;
+using store.Domain.Enums;
 
 namespace store.Application.Services;
 
 public class MovieService : IMovieService
 {
-    private readonly IMovieRepository _movieRepository;
+    private readonly IMovieRepository    _movieRepository;
+    private readonly IShowtimeRepository _showtimeRepository;
+    private readonly ISeatRepository     _seatRepository;
+    private readonly ITicketRepository   _ticketRepository;
 
-    public MovieService(IMovieRepository movieRepository)
+    public MovieService(
+        IMovieRepository    movieRepository,
+        IShowtimeRepository showtimeRepository,
+        ISeatRepository     seatRepository,
+        ITicketRepository   ticketRepository)
     {
-        _movieRepository = movieRepository;
+        _movieRepository    = movieRepository;
+        _showtimeRepository = showtimeRepository;
+        _seatRepository     = seatRepository;
+        _ticketRepository   = ticketRepository;
     }
 
     public async Task<IEnumerable<MovieDto>> GetAllAsync()
@@ -100,6 +111,26 @@ public class MovieService : IMovieService
         await _movieRepository.UpdateAsync(movie);
 
         return MapToDto(movie);
+    }
+
+    public async Task DeleteAsync(Guid id, string webRootPath)
+    {
+        var movie = await _movieRepository.GetByIdAsync(id)
+            ?? throw new KeyNotFoundException($"Movie {id} not found.");
+
+        // Cascade: tickets → seats → showtimes (subquery per movie, one trip each)
+        await _ticketRepository.DeleteByMovieIdAsync(id);
+        await _seatRepository.DeleteByMovieIdAsync(id);
+        await _showtimeRepository.DeleteByMovieIdAsync(id);
+        await _movieRepository.DeleteAsync(id);
+
+        // Delete poster file from disk
+        if (!string.IsNullOrEmpty(movie.PosterUrl))
+        {
+            var relative = movie.PosterUrl.TrimStart('/').Replace('/', Path.DirectorySeparatorChar);
+            var filePath = Path.Combine(webRootPath, relative);
+            if (File.Exists(filePath)) File.Delete(filePath);
+        }
     }
 
     private static MovieDto MapToDto(Movie m) =>

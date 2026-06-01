@@ -9,4 +9,5 @@ public interface ITicketRepository
     Task<List<Ticket>> GetByUserIdAsync(Guid userId);
     Task AddAsync(Ticket ticket);
     Task DeleteByShowtimeIdAsync(Guid showtimeId);
+    Task DeleteByMovieIdAsync(Guid movieId);
 }
