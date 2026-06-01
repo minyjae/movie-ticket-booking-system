@@ -18,6 +18,11 @@ public class ShowtimeRepository : IShowtimeRepository
     public async Task<Showtime?> GetByIdAsync(Guid id)
         => await _context.Showtimes.FindAsync(id);
 
+    public async Task<List<Showtime>> GetAllAsync()
+        => await _context.Showtimes
+            .OrderByDescending(s => s.StartTime)
+            .ToListAsync();
+
     public async Task<List<Showtime>> GetByMovieIdAsync(Guid movieId)
         => await _context.Showtimes
             .Where(s => s.MovieId == movieId)

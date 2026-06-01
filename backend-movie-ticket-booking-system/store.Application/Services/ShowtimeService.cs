@@ -45,6 +45,12 @@ public class ShowtimeService : IShowtimeService
         return showtime is null ? null : MapToDto(showtime);
     }
 
+    public async Task<List<ShowtimeDto>> GetAllAsync()
+    {
+        var showtimes = await _showtimeRepository.GetAllAsync();
+        return showtimes.Select(MapToDto).ToList();
+    }
+
     public async Task<List<ShowtimeDto>> GetByMovieIdAsync(Guid movieId)
     {
         var showtimes = await _showtimeRepository.GetByMovieIdAsync(movieId);

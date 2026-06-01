@@ -1,22 +1,29 @@
 import { Component, inject, signal } from '@angular/core';
+import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { AuthService } from '../../auth/services/auth.service';
 import { MovieService } from '../../movie/services/movie.service';
+import { ShowtimeService } from '../../movie/services/showtime.service';
+import { SeatService } from '../../booking/services/seat.service';
 import { BannerService } from '../../banner/services/banner.service';
 import { MovieCategory, Movie } from '../../movie/models/movie.model';
+import { Showtime } from '../../movie/models/showtime.model';
+import { Seat, SeatStatus, SeatType } from '../../booking/models/seat.model';
 import { Banner } from '../../banner/models/banner.model';
 import { NgSelectModule } from '@ng-select/ng-select';
 
 @Component({
   selector: 'app-admin-dashboard',
-  imports: [FormsModule, NgSelectModule],
+  imports: [FormsModule, NgSelectModule, DatePipe],
   templateUrl: './dashboard.html',
 })
 export class AdminDashboard {
   private http = inject(HttpClient);
   private auth = inject(AuthService);
   private movieService = inject(MovieService);
+  private showtimeService = inject(ShowtimeService);
+  private seatService = inject(SeatService);
   private bannerService = inject(BannerService);
 
   private readonly moviesUrl = 'http://localhost:5074/api/movies';
@@ -29,7 +36,10 @@ export class AdminDashboard {
     this.movieService.getAll().subscribe({ next: (data) => this.movies.set(data) });
   }
 
-  activeTab = signal<'banner' | 'movie' | 'showtime'>('movie');
+  activeTab = signal<'banner' | 'movie' | 'showtime' | 'manage'>('movie');
+
+  SeatStatus = SeatStatus;
+  SeatType = SeatType;
 
   // ── Movie form ──
   movieForm = { title: '', plot: '', price: null as number | null, durationHours: 0, durationMinutes: 0, durationSeconds: 0, category: null as MovieCategory | null };
@@ -42,6 +52,11 @@ export class AdminDashboard {
   showtimeForm = { movieId: null as string | null, screenId: '', startTime: '' };
   showtimeMessage = signal('');
   showtimeError = signal('');
+  selectedShowtimeMovie = signal<Movie | null>(null);
+
+  onShowtimeMovieChange(movieId: string | null) {
+    this.selectedShowtimeMovie.set(this.movies().find((m) => m.id === movieId) ?? null);
+  }
 
   // ── Banner tab ──
   banners = signal<Banner[]>([]);
@@ -55,6 +70,17 @@ export class AdminDashboard {
 
   editingBanner = signal<Banner | null>(null);
   editForm = { title: '', tagline: '', genre: null as string | null };
+
+  // ── Manage Showtimes tab ──
+  allShowtimes = signal<Showtime[]>([]);
+  showtimeListLoading = signal(false);
+  expandedId = signal<string | null>(null);
+  seatCache = signal<Map<string, Seat[]>>(new Map());
+  seatsLoadingId = signal<string | null>(null);
+  deleteConfirmId = signal<string | null>(null);
+  deleteLoading = signal(false);
+  manageMessage = signal('');
+  manageError = signal('');
 
   private get headers(): HttpHeaders {
     return new HttpHeaders({ Authorization: `Bearer ${this.auth.getToken()}` });
@@ -180,6 +206,100 @@ export class AdminDashboard {
     this.posterPreviewUrl.set('');
   }
 
+  // ── Manage Showtimes methods ──
+  onManageTabOpen() {
+    this.manageMessage.set('');
+    this.manageError.set('');
+    this.showtimeListLoading.set(true);
+    this.showtimeService.getAll(this.auth.getToken()!).subscribe({
+      next: (data) => {
+        this.allShowtimes.set(data);
+        this.showtimeListLoading.set(false);
+      },
+      error: () => {
+        this.manageError.set('ไม่สามารถโหลดรอบฉายได้');
+        this.showtimeListLoading.set(false);
+      },
+    });
+  }
+
+  toggleExpand(id: string) {
+    if (this.expandedId() === id) {
+      this.expandedId.set(null);
+      return;
+    }
+    this.expandedId.set(id);
+    if (this.seatCache().has(id)) return;
+    this.seatsLoadingId.set(id);
+    this.seatService.getByShowtimeId(id).subscribe({
+      next: (seats) => {
+        this.seatCache.update((m) => new Map(m).set(id, seats));
+        this.seatsLoadingId.set(null);
+      },
+      error: () => this.seatsLoadingId.set(null),
+    });
+  }
+
+  seatsForShowtime(id: string): Seat[] {
+    return this.seatCache().get(id) ?? [];
+  }
+
+  seatRows(id: string): { row: string; seats: Seat[] }[] {
+    const grouped = new Map<string, Seat[]>();
+    for (const seat of this.seatsForShowtime(id)) {
+      const row = seat.seatCode.charAt(0);
+      if (!grouped.has(row)) grouped.set(row, []);
+      grouped.get(row)!.push(seat);
+    }
+    return [...grouped.entries()]
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([row, seats]) => ({
+        row,
+        seats: seats.sort((a, b) => +a.seatCode.slice(1) - +b.seatCode.slice(1)),
+      }));
+  }
+
+  seatStats(id: string) {
+    const seats = this.seatsForShowtime(id);
+    const vip = seats.filter((s) => s.type === SeatType.VIP);
+    const normal = seats.filter((s) => s.type === SeatType.Normal);
+    return {
+      vipTotal: vip.length,
+      vipBooked: vip.filter((s) => s.status === SeatStatus.Booked).length,
+      normalTotal: normal.length,
+      normalBooked: normal.filter((s) => s.status === SeatStatus.Booked).length,
+    };
+  }
+
+  askDeleteShowtime(id: string) {
+    this.deleteConfirmId.set(id);
+  }
+
+  cancelDeleteShowtime() {
+    this.deleteConfirmId.set(null);
+  }
+
+  confirmDeleteShowtime(id: string) {
+    this.deleteLoading.set(true);
+    this.manageMessage.set('');
+    this.manageError.set('');
+    this.http.delete(`${this.showtimesUrl}/${id}`, { headers: this.headers }).subscribe({
+      next: () => {
+        this.allShowtimes.update((list) => list.filter((s) => s.id !== id));
+        this.seatCache.update((m) => { const n = new Map(m); n.delete(id); return n; });
+        if (this.expandedId() === id) this.expandedId.set(null);
+        this.deleteConfirmId.set(null);
+        this.deleteLoading.set(false);
+        this.manageMessage.set('ลบรอบฉายสำเร็จ');
+      },
+      error: (err) => {
+        this.manageError.set(err.error?.error ?? 'ไม่สามารถลบรอบฉายได้');
+        this.deleteConfirmId.set(null);
+        this.deleteLoading.set(false);
+      },
+    });
+  }
+
   // ── Showtime methods ──
   submitShowtime() {
     this.showtimeMessage.set('');
@@ -195,6 +315,7 @@ export class AdminDashboard {
       next: () => {
         this.showtimeMessage.set('เพิ่มรอบฉายสำเร็จ');
         this.showtimeForm = { movieId: null, screenId: '', startTime: '' };
+        this.selectedShowtimeMovie.set(null);
       },
       error: (err) => this.showtimeError.set(err.error?.error ?? err.error?.message ?? 'เกิดข้อผิดพลาด'),
     });

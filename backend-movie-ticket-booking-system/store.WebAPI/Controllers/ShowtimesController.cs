@@ -22,6 +22,14 @@ public class ShowtimesController : ControllerBase
         _createValidator = createValidator;
     }
 
+    [HttpGet]                        // GET /api/showtimes  (Admin only)
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> GetAll()
+    {
+        var showtimes = await _showtimeService.GetAllAsync();
+        return Ok(showtimes);
+    }
+
     [HttpGet("{id}")]               // GET /api/showtimes/{id}
     public async Task<IActionResult> GetById(Guid id)
     {
