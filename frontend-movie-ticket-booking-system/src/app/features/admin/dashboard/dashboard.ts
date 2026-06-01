@@ -1,5 +1,5 @@
 import { Component, inject, signal } from '@angular/core';
-import { DatePipe } from '@angular/common';
+import { DatePipe, DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { AuthService } from '../../auth/services/auth.service';
@@ -7,15 +7,17 @@ import { MovieService } from '../../movie/services/movie.service';
 import { ShowtimeService } from '../../movie/services/showtime.service';
 import { SeatService } from '../../booking/services/seat.service';
 import { BannerService } from '../../banner/services/banner.service';
+import { ScreenService } from '../services/screen.service';
 import { MovieCategory, Movie } from '../../movie/models/movie.model';
 import { Showtime } from '../../movie/models/showtime.model';
 import { Seat, SeatStatus, SeatType } from '../../booking/models/seat.model';
 import { Banner } from '../../banner/models/banner.model';
+import { Screen } from '../models/screen.model';
 import { NgSelectModule } from '@ng-select/ng-select';
 
 @Component({
   selector: 'app-admin-dashboard',
-  imports: [FormsModule, NgSelectModule, DatePipe],
+  imports: [FormsModule, NgSelectModule, DatePipe, DecimalPipe],
   templateUrl: './dashboard.html',
 })
 export class AdminDashboard {
@@ -25,6 +27,7 @@ export class AdminDashboard {
   private showtimeService = inject(ShowtimeService);
   private seatService = inject(SeatService);
   private bannerService = inject(BannerService);
+  private screenService = inject(ScreenService);
 
   private readonly moviesUrl = 'http://localhost:5074/api/movies';
   private readonly showtimesUrl = 'http://localhost:5074/api/showtimes';
@@ -34,9 +37,10 @@ export class AdminDashboard {
 
   constructor() {
     this.movieService.getAll().subscribe({ next: (data) => this.movies.set(data) });
+    this.screenService.getAll().subscribe({ next: (data) => this.screens.set(data) });
   }
 
-  activeTab = signal<'banner' | 'movie' | 'showtime' | 'manage'>('movie');
+  activeTab = signal<'banner' | 'movie' | 'showtime' | 'manage' | 'screens'>('movie');
 
   SeatStatus = SeatStatus;
   SeatType = SeatType;
@@ -49,14 +53,28 @@ export class AdminDashboard {
   posterPreviewUrl = signal('');
 
   // ── Showtime form ──
-  showtimeForm = { movieId: null as string | null, screenId: '', startTime: '' };
+  showtimeForm = { movieId: null as string | null, screenId: null as string | null, startTime: '' };
   showtimeMessage = signal('');
   showtimeError = signal('');
   selectedShowtimeMovie = signal<Movie | null>(null);
+  selectedShowtimeScreen = signal<Screen | null>(null);
 
   onShowtimeMovieChange(movieId: string | null) {
     this.selectedShowtimeMovie.set(this.movies().find((m) => m.id === movieId) ?? null);
   }
+
+  onShowtimeScreenChange(screenId: string | null) {
+    this.selectedShowtimeScreen.set(this.screens().find((s) => s.id === screenId) ?? null);
+  }
+
+  // ── Screens tab ──
+  screens = signal<Screen[]>([]);
+  screensLoading = signal(false);
+  screenForm = { name: '', vipRows: 2, vipSeatsPerRow: 8, normalRows: 6, normalSeatsPerRow: 12 };
+  screenMessage = signal('');
+  screenError = signal('');
+  screenDeleteConfirmId = signal<string | null>(null);
+  screenDeleteLoading = signal(false);
 
   // ── Banner tab ──
   banners = signal<Banner[]>([]);
@@ -300,6 +318,65 @@ export class AdminDashboard {
     });
   }
 
+  // ── Screen methods ──
+  onScreensTabOpen() {
+    this.screenMessage.set('');
+    this.screenError.set('');
+    this.screensLoading.set(true);
+    this.screenService.getAll().subscribe({
+      next: (data) => { this.screens.set(data); this.screensLoading.set(false); },
+      error: () => { this.screenError.set('ไม่สามารถโหลดข้อมูลโรงได้'); this.screensLoading.set(false); },
+    });
+  }
+
+  submitScreen() {
+    this.screenMessage.set('');
+    this.screenError.set('');
+    const f = this.screenForm;
+    if (!f.name.trim()) { this.screenError.set('กรุณากรอกชื่อโรง'); return; }
+    if (f.normalRows < 1) { this.screenError.set('ต้องมีแถวปกติอย่างน้อย 1 แถว'); return; }
+
+    this.screenService.create({
+      name: f.name.trim(),
+      vipRows: f.vipRows,
+      vipSeatsPerRow: f.vipSeatsPerRow,
+      normalRows: f.normalRows,
+      normalSeatsPerRow: f.normalSeatsPerRow,
+    }).subscribe({
+      next: (screen) => {
+        this.screens.update((list) => [...list, screen].sort((a, b) => a.name.localeCompare(b.name)));
+        this.screenForm = { name: '', vipRows: 2, vipSeatsPerRow: 8, normalRows: 6, normalSeatsPerRow: 12 };
+        this.screenMessage.set(`เพิ่มโรง "${screen.name}" สำเร็จ`);
+      },
+      error: (err) => this.screenError.set(
+        (Array.isArray(err.error) ? err.error.join(', ') : null)
+          ?? err.error?.error ?? 'เกิดข้อผิดพลาด'
+      ),
+    });
+  }
+
+  askDeleteScreen(id: string) { this.screenDeleteConfirmId.set(id); }
+  cancelDeleteScreen() { this.screenDeleteConfirmId.set(null); }
+
+  confirmDeleteScreen(id: string) {
+    this.screenDeleteLoading.set(true);
+    this.screenMessage.set('');
+    this.screenError.set('');
+    this.screenService.delete(id).subscribe({
+      next: () => {
+        this.screens.update((list) => list.filter((s) => s.id !== id));
+        this.screenDeleteConfirmId.set(null);
+        this.screenDeleteLoading.set(false);
+        this.screenMessage.set('ลบโรงสำเร็จ');
+      },
+      error: (err) => {
+        this.screenError.set(err.error?.error ?? 'ไม่สามารถลบโรงได้ อาจมีรอบฉายผูกอยู่');
+        this.screenDeleteConfirmId.set(null);
+        this.screenDeleteLoading.set(false);
+      },
+    });
+  }
+
   // ── Showtime methods ──
   submitShowtime() {
     this.showtimeMessage.set('');
@@ -314,8 +391,9 @@ export class AdminDashboard {
     this.http.post(this.showtimesUrl, body, { headers: this.headers }).subscribe({
       next: () => {
         this.showtimeMessage.set('เพิ่มรอบฉายสำเร็จ');
-        this.showtimeForm = { movieId: null, screenId: '', startTime: '' };
+        this.showtimeForm = { movieId: null, screenId: null, startTime: '' };
         this.selectedShowtimeMovie.set(null);
+        this.selectedShowtimeScreen.set(null);
       },
       error: (err) => this.showtimeError.set(err.error?.error ?? err.error?.message ?? 'เกิดข้อผิดพลาด'),
     });

@@ -9,6 +9,7 @@ public class AppDbContext : DbContext
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) {}
 
     public DbSet<Banner> Banners => Set<Banner>();
+    public DbSet<Screen> Screens => Set<Screen>();
     public DbSet<Movie> Movies => Set<Movie>();
     public DbSet<Showtime> Showtimes => Set<Showtime>();
     public DbSet<Seat> Seats => Set<Seat>();
@@ -19,6 +20,14 @@ public class AppDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<Screen>(e =>
+        {
+            e.HasKey(s => s.Id);
+            e.Property(s => s.Name).IsRequired().HasMaxLength(100);
+            e.Ignore(s => s.TotalVipSeats);
+            e.Ignore(s => s.TotalNormalSeats);
+        });
+
         modelBuilder.Entity<Banner>(e =>
         {
             e.HasKey(b => b.Id);
@@ -40,6 +49,9 @@ public class AppDbContext : DbContext
             e.HasOne(s => s.Movie)
              .WithMany()
              .HasForeignKey(s => s.MovieId);
+            e.HasOne(s => s.Screen)
+             .WithMany(sc => sc.Showtimes)
+             .HasForeignKey(s => s.ScreenId);
         });
 
         modelBuilder.Entity<Seat>(e =>

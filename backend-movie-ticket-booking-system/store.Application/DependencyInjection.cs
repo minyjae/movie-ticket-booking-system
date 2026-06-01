@@ -18,6 +18,7 @@ public static class DependencyInjection
         services.AddScoped<IWalletService, WalletService>();
         services.AddScoped<IBannerService, BannerService>();
         services.AddScoped<ITicketService, TicketService>();
+        services.AddScoped<IScreenService, ScreenService>();
 
         services.AddValidatorsFromAssemblyContaining<CreateMovieValidator>();
 

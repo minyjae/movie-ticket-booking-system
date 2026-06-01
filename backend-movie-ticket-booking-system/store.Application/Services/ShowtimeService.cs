@@ -11,32 +11,22 @@ public class ShowtimeService : IShowtimeService
 {
     private readonly IShowtimeRepository _showtimeRepository;
     private readonly IMovieRepository _movieRepository;
+    private readonly IScreenRepository _screenRepository;
     private readonly ISeatRepository _seatRepository;
     private readonly ITicketRepository _ticketRepository;
-
-    // Layout matches the frontend cinema UI
-    private static readonly (string Row, int Cols, SeatType Type)[] SeatLayout =
-    [
-        ("A", 8,  SeatType.VIP),
-        ("B", 8,  SeatType.VIP),
-        ("C", 12, SeatType.Normal),
-        ("D", 12, SeatType.Normal),
-        ("E", 12, SeatType.Normal),
-        ("F", 12, SeatType.Normal),
-        ("G", 12, SeatType.Normal),
-        ("H", 12, SeatType.Normal),
-    ];
 
     public ShowtimeService(
         IShowtimeRepository showtimeRepository,
         IMovieRepository movieRepository,
+        IScreenRepository screenRepository,
         ISeatRepository seatRepository,
         ITicketRepository ticketRepository)
     {
         _showtimeRepository = showtimeRepository;
-        _movieRepository = movieRepository;
-        _seatRepository = seatRepository;
-        _ticketRepository = ticketRepository;
+        _movieRepository    = movieRepository;
+        _screenRepository   = screenRepository;
+        _seatRepository     = seatRepository;
+        _ticketRepository   = ticketRepository;
     }
 
     public async Task<ShowtimeDto?> GetByIdAsync(Guid showtimeId)
@@ -62,30 +52,43 @@ public class ShowtimeService : IShowtimeService
         var movie = await _movieRepository.GetByIdAsync(dto.MovieId)
             ?? throw new KeyNotFoundException($"Movie {dto.MovieId} not found.");
 
+        var screen = await _screenRepository.GetByIdAsync(dto.ScreenId)
+            ?? throw new KeyNotFoundException($"Screen {dto.ScreenId} not found.");
+
         var showtime = Showtime.Create(
             movieId:         movie.Id,
             movieName:       movie.Title,
-            screenId:        dto.ScreenId,
-            screenName:      dto.ScreenId, // ปรับได้ถ้ามี Screen Entity
+            screenId:        screen.Id,
+            screenName:      screen.Name,
             startTime:       dto.StartTime,
             durationMinutes: (int)movie.Duration.TotalMinutes);
 
         await _showtimeRepository.AddAsync(showtime);
-        await GenerateSeatsAsync(showtime.Id, movie.Price);
+        await GenerateSeatsAsync(showtime.Id, movie.Price, screen);
         return MapToDto(showtime);
     }
 
-    private async Task GenerateSeatsAsync(Guid showtimeId, decimal moviePrice)
+    private async Task GenerateSeatsAsync(Guid showtimeId, decimal moviePrice, Domain.Entities.Screen screen)
     {
         var normalPrice = moviePrice;
         var vipPrice    = Math.Round(moviePrice * 2.5m, 2);
 
         var seats = new List<Seat>();
-        foreach (var (row, cols, type) in SeatLayout)
+
+        // VIP rows: A, B, C, ...
+        for (int r = 0; r < screen.VipRows; r++)
         {
-            var price = type == SeatType.VIP ? vipPrice : normalPrice;
-            for (int col = 1; col <= cols; col++)
-                seats.Add(Seat.Create(showtimeId, $"{row}{col}", type, price));
+            var row = (char)('A' + r);
+            for (int col = 1; col <= screen.VipSeatsPerRow; col++)
+                seats.Add(Seat.Create(showtimeId, $"{row}{col}", SeatType.VIP, vipPrice));
+        }
+
+        // Normal rows: continue lettering after VIP rows
+        for (int r = 0; r < screen.NormalRows; r++)
+        {
+            var row = (char)('A' + screen.VipRows + r);
+            for (int col = 1; col <= screen.NormalSeatsPerRow; col++)
+                seats.Add(Seat.Create(showtimeId, $"{row}{col}", SeatType.Normal, normalPrice));
         }
 
         await _seatRepository.AddRangeAsync(seats);

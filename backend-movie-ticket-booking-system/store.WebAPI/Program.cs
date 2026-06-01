@@ -74,6 +74,16 @@ using (var scope = app.Services.CreateScope())
         db.Users.Add(admin);
         db.SaveChanges();
     }
+
+    if (!db.Screens.Any())
+    {
+        db.Screens.AddRange(
+            Screen.Create("โรง 1 (Standard)", vipRows: 2, vipSeatsPerRow: 8,  normalRows: 6, normalSeatsPerRow: 12),
+            Screen.Create("โรง 2 (Standard)", vipRows: 2, vipSeatsPerRow: 8,  normalRows: 6, normalSeatsPerRow: 12),
+            Screen.Create("โรง 3 (IMAX)",     vipRows: 3, vipSeatsPerRow: 10, normalRows: 8, normalSeatsPerRow: 15)
+        );
+        db.SaveChanges();
+    }
 }
 
 // ➌ เพิ่ม Global Exception Middleware (ต้องอยู่ก่อน Middleware อื่น)

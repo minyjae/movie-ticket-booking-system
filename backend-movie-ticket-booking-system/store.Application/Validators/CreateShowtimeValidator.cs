@@ -12,7 +12,8 @@ public class CreateShowtimeValidator : AbstractValidator<CreateShowtimeDto>
             .NotEmpty().WithMessage("MovieId is required.");
 
         RuleFor(x => x.ScreenId)
-            .NotEmpty().WithMessage("ScreenId is required.");
+            .NotEmpty().WithMessage("ScreenId is required.")
+            .Must(id => id != Guid.Empty).WithMessage("A valid ScreenId is required.");
 
         RuleFor(x => x.StartTime)
             .GreaterThan(TimeZoneInfo.ConvertTimeBySystemTimeZoneId(DateTime.UtcNow, "Asia/Bangkok")).WithMessage("StartTime must be in the future.");

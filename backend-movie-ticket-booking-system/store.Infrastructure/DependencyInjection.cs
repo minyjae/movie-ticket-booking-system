@@ -30,6 +30,7 @@ public static class DependencyInjection
         services.AddScoped<ILedgerRepository, LedgerRepository>();
         services.AddScoped<ITicketRepository, TicketRepository>();
         services.AddScoped<IShowtimeRepository, ShowtimeRepository>();
+        services.AddScoped<IScreenRepository, ScreenRepository>();
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<IBannerRepository, BannerRepository>();
 
