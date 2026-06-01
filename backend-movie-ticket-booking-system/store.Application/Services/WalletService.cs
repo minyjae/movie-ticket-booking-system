@@ -1,4 +1,5 @@
 // store.Application/Services/WalletService.cs
+using store.Application.DTOs;
 using store.Application.Interfaces;
 using store.Domain.Entities;
 using store.Domain.Interfaces;
@@ -28,6 +29,21 @@ public class WalletService : IWalletService
 
         // เช็คว่าถึงเวลาสร้าง Snapshot ไหม
         await TryCreateSnapshotAsync(userId);
+    }
+
+    public async Task<TransactionHistoryDto> GetHistoryAsync(Guid userId, int page, int pageSize)
+    {
+        pageSize = Math.Clamp(pageSize, 1, 50);
+        page     = Math.Max(page, 1);
+
+        var balance = await _ledgerRepository.GetBalanceAsync(userId);
+        var (entries, total) = await _ledgerRepository.GetHistoryAsync(userId, page, pageSize);
+
+        var dtos = entries.Select(e => new LedgerEntryDto(
+            e.Id, e.Amount, e.Type, e.Description, e.ReferenceId, e.CreatedAt
+        )).ToList();
+
+        return new TransactionHistoryDto(balance, total, page, pageSize, dtos);
     }
 
     private async Task TryCreateSnapshotAsync(Guid userId)

@@ -7,4 +7,5 @@ public interface IWalletService
 {
     Task<decimal> GetBalanceAsync(Guid userId);
     Task DepositAsync(Guid userId, decimal amount);
+    Task<TransactionHistoryDto> GetHistoryAsync(Guid userId, int page, int pageSize);
 }

@@ -7,6 +7,7 @@ import { Login } from './features/auth/pages/login/login';
 import { Register } from './features/auth/pages/register/register';
 import { AdminDashboard } from './features/admin/dashboard/dashboard';
 import { MyTickets } from './features/tickets/pages/my-tickets/my-tickets';
+import { TransactionHistory } from './features/wallet/pages/transaction-history/transaction-history';
 import { adminGuard } from './core/admin.guard';
 import { authGuard } from './core/auth.guard';
 
@@ -18,5 +19,6 @@ export const routes: Routes = [
   { path: 'login', component: Login },
   { path: 'register', component: Register },
   { path: 'my-tickets', component: MyTickets, canActivate: [authGuard] },
+  { path: 'wallet/history', component: TransactionHistory, canActivate: [authGuard] },
   { path: 'admin', component: AdminDashboard, canActivate: [adminGuard] },
 ];

@@ -35,6 +35,16 @@ public class WalletController : ControllerBase
         return Ok(new WalletDto(userGuid, balance));
     }
 
+    [HttpGet("history")]                 // GET /api/wallet/history?page=1&pageSize=20
+    public async Task<IActionResult> GetHistory([FromQuery] int page = 1, [FromQuery] int pageSize = 20)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
+            ?? throw new UnauthorizedAccessException("User not found in token.");
+
+        var history = await _walletService.GetHistoryAsync(Guid.Parse(userId), page, pageSize);
+        return Ok(history);
+    }
+
     [HttpPost("deposit")]               // POST /api/wallet/deposit
     public async Task<IActionResult> Deposit([FromBody] DepositDto dto)
     {

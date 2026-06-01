@@ -8,6 +8,25 @@ interface WalletResponse {
   balance: number;
 }
 
+export type LedgerEntryType = 'Deposit' | 'TicketPurchase';
+
+export interface LedgerEntry {
+  id: string;
+  amount: number;
+  type: LedgerEntryType;
+  description: string;
+  referenceId: string | null;
+  createdAt: string;
+}
+
+export interface WalletHistory {
+  balance: number;
+  total: number;
+  page: number;
+  pageSize: number;
+  entries: LedgerEntry[];
+}
+
 @Injectable({ providedIn: 'root' })
 export class WalletService {
   private http = inject(HttpClient);
@@ -30,6 +49,13 @@ export class WalletService {
     return this.http.post<WalletResponse>(
       `${this.baseUrl}/deposit`, { amount }, this.options
     ).pipe(tap(res => this._balance.set(res.balance)));
+  }
+
+  getHistory(page = 1, pageSize = 20) {
+    return this.http.get<WalletHistory>(
+      `${this.baseUrl}/history?page=${page}&pageSize=${pageSize}`,
+      this.options
+    );
   }
 
   clearBalance() {
