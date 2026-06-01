@@ -1,7 +1,6 @@
 import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { toSignal } from '@angular/core/rxjs-interop';
 import { AuthService } from '../../auth/services/auth.service';
 import { MovieService } from '../../movie/services/movie.service';
 import { BannerService } from '../../banner/services/banner.service';
@@ -23,8 +22,12 @@ export class AdminDashboard {
   private readonly moviesUrl = 'http://localhost:5074/api/movies';
   private readonly showtimesUrl = 'http://localhost:5074/api/showtimes';
 
-  movies = toSignal(this.movieService.getAll(), { initialValue: [] });
+  movies = signal<Movie[]>([]);
   categories = Object.values(MovieCategory);
+
+  constructor() {
+    this.movieService.getAll().subscribe({ next: (data) => this.movies.set(data) });
+  }
 
   activeTab = signal<'banner' | 'movie' | 'showtime'>('movie');
 
@@ -36,7 +39,7 @@ export class AdminDashboard {
   posterPreviewUrl = signal('');
 
   // ── Showtime form ──
-  showtimeForm = { movieId: '', screenId: '', startTime: '' };
+  showtimeForm = { movieId: null as string | null, screenId: '', startTime: '' };
   showtimeMessage = signal('');
   showtimeError = signal('');
 
@@ -162,7 +165,10 @@ export class AdminDashboard {
     form.append('poster', this.posterFile);
 
     this.http.post<Movie>(this.moviesUrl, form, { headers: this.headers }).subscribe({
-      next: () => this.resetMovieForm(),
+      next: (movie) => {
+        this.movies.update((list) => [...list, movie]);
+        this.resetMovieForm();
+      },
       error: (err) => this.movieError.set(err.error?.error ?? err.error?.message ?? 'เกิดข้อผิดพลาด'),
     });
   }
@@ -188,7 +194,7 @@ export class AdminDashboard {
     this.http.post(this.showtimesUrl, body, { headers: this.headers }).subscribe({
       next: () => {
         this.showtimeMessage.set('เพิ่มรอบฉายสำเร็จ');
-        this.showtimeForm = { movieId: '', screenId: '', startTime: '' };
+        this.showtimeForm = { movieId: null, screenId: '', startTime: '' };
       },
       error: (err) => this.showtimeError.set(err.error?.error ?? err.error?.message ?? 'เกิดข้อผิดพลาด'),
     });

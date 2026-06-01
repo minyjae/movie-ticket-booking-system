@@ -1,5 +1,6 @@
 // store.Application/Services/TicketBookingService.cs
 using Microsoft.EntityFrameworkCore;
+using QRCoder;
 using StackExchange.Redis;
 using store.Application.Interfaces;
 using store.Domain.Entities;
@@ -112,7 +113,10 @@ public class TicketBookingService : ITicketBookingService
 
     private static string GenerateQrCode(string referenceCode)
     {
-        var bytes = System.Text.Encoding.UTF8.GetBytes(referenceCode);
-        return Convert.ToBase64String(bytes);
+        using var generator = new QRCodeGenerator();
+        using var data = generator.CreateQrCode(referenceCode, QRCodeGenerator.ECCLevel.Q);
+        using var qrCode = new PngByteQRCode(data);
+        var pngBytes = qrCode.GetGraphic(10);
+        return Convert.ToBase64String(pngBytes);
     }
 }

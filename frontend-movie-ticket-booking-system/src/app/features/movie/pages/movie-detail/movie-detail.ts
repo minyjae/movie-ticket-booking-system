@@ -8,6 +8,7 @@ import { ShowtimeService } from '../../services/showtime.service';
 import { SeatService } from '../../../booking/services/seat.service';
 import { BookingService } from '../../../booking/services/booking.service';
 import { AuthService } from '../../../auth/services/auth.service';
+import { WalletService } from '../../../wallet/services/wallet.service';
 import { Showtime } from '../../models/showtime.model';
 import { Seat, SeatStatus, SeatType } from '../../../booking/models/seat.model';
 import { Ticket } from '../../../booking/models/ticket.model';
@@ -33,6 +34,7 @@ export class MovieDetail {
   private seatService = inject(SeatService);
   private bookingService = inject(BookingService);
   private auth = inject(AuthService);
+  private wallet = inject(WalletService);
 
   SeatStatus = SeatStatus;
   SeatType = SeatType;
@@ -154,6 +156,7 @@ export class MovieDetail {
         this.selectedSeatIds.set(new Set());
         this.bookedTickets.set(tickets);
         this.isBooking.set(false);
+        this.wallet.loadBalance();
       },
       error: err => {
         const body = err.error;
