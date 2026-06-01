@@ -39,6 +39,8 @@ public class BookingsController : ControllerBase
             ticket.PricePaid,
             ticket.ReferenceCode,
             ticket.QrCodeBase64,
-            ticket.IssuedAt));
+            ticket.IssuedAt,
+            ticket.IsCancelled,
+            ticket.CancelledAt));
     }
 }

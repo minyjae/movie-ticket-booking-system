@@ -33,6 +33,22 @@ public class LedgerEntry
         };
     }
 
+    public static LedgerEntry CreateRefund(Guid userId, decimal amount, Guid ticketId)
+    {
+        if (amount <= 0)
+            throw new ArgumentException("Refund amount must be positive.");
+
+        return new LedgerEntry
+        {
+            UserId      = userId,
+            Amount      = amount,
+            Type        = LedgerEntryType.Refund,
+            Description = $"Refund for cancelled ticket",
+            ReferenceId = ticketId,
+            CreatedAt   = TimeZoneInfo.ConvertTimeBySystemTimeZoneId(DateTime.UtcNow, "Asia/Bangkok")
+        };
+    }
+
     public static LedgerEntry CreateTicketPurchase(Guid userId,
                                                     decimal amount,
                                                     Guid ticketId)

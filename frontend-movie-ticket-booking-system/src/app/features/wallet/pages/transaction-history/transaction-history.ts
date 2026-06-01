@@ -61,7 +61,16 @@ export class TransactionHistory implements OnInit {
     this.loadPage(this.currentPage() + 1);
   }
 
-  isDeposit(entry: LedgerEntry) {
-    return entry.type === 'Deposit';
+  isCredit(entry: LedgerEntry): boolean {
+    return entry.amount > 0;
+  }
+
+  entryLabel(entry: LedgerEntry): string {
+    switch (entry.type) {
+      case 'Deposit':        return 'เติมเงิน';
+      case 'TicketPurchase': return 'ซื้อตั๋ว';
+      case 'Refund':         return 'คืนเงิน (ยกเลิกตั๋ว)';
+      default:               return entry.type;
+    }
   }
 }

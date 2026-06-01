@@ -48,7 +48,7 @@
               <!-- Left strip (status color) -->
               <div
                 class="w-1.5 flex-shrink-0"
-                [class]="isUpcoming(ticket.showtime) ? 'bg-green-500' : 'bg-gray-700'"
+                [class]="ticket.isCancelled ? 'bg-gray-700' : isUpcoming(ticket.showtime) ? 'bg-green-500' : 'bg-gray-700'"
               ></div>
 
               <!-- Content -->
@@ -58,7 +58,9 @@
                   <!-- Movie info -->
                   <div class="flex-1 min-w-0">
                     <div class="flex items-center gap-2 mb-1">
-                      @if (isUpcoming(ticket.showtime)) {
+                      @if (ticket.isCancelled) {
+                        <span class="text-xs bg-gray-500/15 text-gray-500 px-2 py-0.5 rounded-full font-medium line-through">ยกเลิกแล้ว</span>
+                      } @else if (isUpcoming(ticket.showtime)) {
                         <span class="text-xs bg-green-500/15 text-green-400 px-2 py-0.5 rounded-full font-medium">กำลังจะฉาย</span>
                       } @else {
                         <span class="text-xs bg-white/5 text-gray-500 px-2 py-0.5 rounded-full">ผ่านไปแล้ว</span>
@@ -97,10 +99,42 @@
 
                 </div>
 
-                <!-- Divider + reference -->
-                <div class="border-t border-white/5 mt-3 pt-3 flex items-center justify-between">
-                  <span class="text-xs text-gray-600 font-mono">{{ ticket.referenceCode }}</span>
-                  <span class="text-xs text-gray-600">{{ ticket.issuedAt | date:'d MMM yyyy' }}</span>
+                <!-- Divider + reference + cancel -->
+                <div class="border-t border-white/5 mt-3 pt-3 flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <span class="text-xs text-gray-600 font-mono">{{ ticket.referenceCode }}</span>
+                    <span class="text-xs text-gray-600 ml-3">{{ ticket.issuedAt | date:'d MMM yyyy' }}</span>
+                  </div>
+
+                  @if (ticket.isCancelled) {
+                    <span class="text-xs bg-gray-700/50 text-gray-500 px-2.5 py-1 rounded-full">ยกเลิกแล้ว</span>
+                  } @else if (canCancel(ticket)) {
+                    @if (cancelConfirmId() !== ticket.id) {
+                      <button
+                        (click)="askCancel(ticket.id)"
+                        class="text-xs text-gray-500 hover:text-red-400 border border-white/5 hover:border-red-500/30 px-3 py-1 rounded-full transition-colors cursor-pointer"
+                      >ยกเลิกตั๋ว</button>
+                    } @else {
+                      <div class="flex flex-col gap-1.5 w-full">
+                        <p class="text-xs text-amber-400">ยืนยันยกเลิก? เงิน ฿{{ ticket.pricePaid | number:'1.0-0' }} จะถูกคืนทันที</p>
+                        @if (cancelError()) {
+                          <p class="text-xs text-red-400">{{ cancelError() }}</p>
+                        }
+                        <div class="flex gap-2">
+                          <button
+                            (click)="confirmCancel(ticket.id)"
+                            [disabled]="cancellingId() === ticket.id"
+                            class="text-xs bg-red-600 hover:bg-red-500 disabled:opacity-50 text-white px-3 py-1.5 rounded-lg font-medium transition-colors cursor-pointer"
+                          >{{ cancellingId() === ticket.id ? 'กำลังยกเลิก...' : 'ยืนยัน' }}</button>
+                          <button
+                            (click)="dismissCancel()"
+                            [disabled]="cancellingId() === ticket.id"
+                            class="text-xs text-gray-400 hover:text-white border border-white/10 px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
+                          >ไม่ยกเลิก</button>
+                        </div>
+                      </div>
+                    }
+                  }
                 </div>
               </div>
 

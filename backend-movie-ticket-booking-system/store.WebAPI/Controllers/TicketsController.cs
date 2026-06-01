@@ -27,4 +27,14 @@ public class TicketsController : ControllerBase
         var tickets = await _ticketService.GetMyTicketsAsync(Guid.Parse(userId));
         return Ok(tickets);
     }
+
+    [HttpPost("{id}/cancel")]            // POST /api/tickets/{id}/cancel
+    public async Task<IActionResult> Cancel(Guid id)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
+            ?? throw new UnauthorizedAccessException("User not found in token.");
+
+        var ticket = await _ticketService.CancelAsync(id, Guid.Parse(userId));
+        return Ok(ticket);
+    }
 }

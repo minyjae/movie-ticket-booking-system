@@ -36,4 +36,13 @@ public class Seat
         Status = SeatStatus.Booked;
         RowVersion = Guid.NewGuid().ToByteArray();
     }
+
+    public void Restore()
+    {
+        if (Status != SeatStatus.Booked)
+            throw new InvalidOperationException(
+                $"Seat {SeatCode} is not booked. Current: {Status}");
+        Status = SeatStatus.Available;
+        RowVersion = Guid.NewGuid().ToByteArray();
+    }
 }

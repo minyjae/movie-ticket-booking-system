@@ -8,7 +8,7 @@ interface WalletResponse {
   balance: number;
 }
 
-export type LedgerEntryType = 'Deposit' | 'TicketPurchase';
+export type LedgerEntryType = 'Deposit' | 'TicketPurchase' | 'Refund';
 
 export interface LedgerEntry {
   id: string;

@@ -11,6 +11,8 @@ export interface Ticket {
   referenceCode: string;
   qrCodeBase64: string;
   issuedAt: string;
+  isCancelled: boolean;
+  cancelledAt: string | null;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -25,5 +27,9 @@ export class TicketService {
 
   getMyTickets() {
     return this.http.get<Ticket[]>(`${this.baseUrl}/my`, this.options);
+  }
+
+  cancel(ticketId: string) {
+    return this.http.post<Ticket>(`${this.baseUrl}/${ticketId}/cancel`, {}, this.options);
   }
 }

@@ -9,5 +9,7 @@ public record TicketDto(
     decimal PricePaid,
     string ReferenceCode,
     string QrCodeBase64,
-    DateTime IssuedAt
+    DateTime IssuedAt,
+    bool IsCancelled,
+    DateTime? CancelledAt
 );
