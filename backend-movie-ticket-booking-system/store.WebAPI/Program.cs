@@ -1,6 +1,7 @@
 using store.Application;
 using store.Infrastructure;
 using store.WebAPI.Middleware;
+using store.WebAPI.Hubs;
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
@@ -18,8 +19,10 @@ var jwtSecret = Environment.GetEnvironmentVariable("JWT_SECRET")
 var builder = WebApplication.CreateBuilder(args);
 
 // ➊ ลงทะเบียน Services แยกเป็นกลุ่มตาม Layer
-builder.Services.AddApplication();                        // Application Layer
-builder.Services.AddInfrastructure(); // Infrastructure Layer
+builder.Services.AddApplication();
+builder.Services.AddInfrastructure();
+builder.Services.AddSignalR();
+builder.Services.AddScoped<ISeatNotifier, SeatNotifier>();
 
 // แปลง Enum ให้เป็น string ส่งมาแทน
 builder.Services.AddControllers()
@@ -36,7 +39,8 @@ builder.Services.AddCors(options =>
     {
         policy.WithOrigins("http://localhost:4200")
               .AllowAnyMethod()
-              .AllowAnyHeader();
+              .AllowAnyHeader()
+              .AllowCredentials();   // SignalR WebSocket ต้องการ credentials
     });
 });
 
@@ -101,5 +105,6 @@ app.UseStaticFiles();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+app.MapHub<SeatHub>("/hubs/seats");
 
 app.Run();

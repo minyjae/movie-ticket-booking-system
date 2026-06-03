@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, inject, OnDestroy, signal } from '@angular/core';
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
@@ -9,6 +9,7 @@ import { SeatService } from '../../../booking/services/seat.service';
 import { BookingService } from '../../../booking/services/booking.service';
 import { AuthService } from '../../../auth/services/auth.service';
 import { WalletService } from '../../../wallet/services/wallet.service';
+import { SeatHubService } from '../../../booking/services/seat-hub.service';
 import { Showtime } from '../../models/showtime.model';
 import { Seat, SeatStatus, SeatType } from '../../../booking/models/seat.model';
 import { Ticket } from '../../../booking/models/ticket.model';
@@ -26,7 +27,7 @@ interface SeatRow {
   templateUrl: './movie-detail.html',
   styleUrl: './movie-detail.css',
 })
-export class MovieDetail {
+export class MovieDetail implements OnDestroy {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private movieService = inject(MovieService);
@@ -35,6 +36,7 @@ export class MovieDetail {
   private bookingService = inject(BookingService);
   private auth = inject(AuthService);
   private wallet = inject(WalletService);
+  seatHub = inject(SeatHubService);
 
   SeatStatus = SeatStatus;
   SeatType = SeatType;
@@ -84,6 +86,10 @@ export class MovieDetail {
   vipSeatPrice = computed(() => this.seats().find(s => s.type === SeatType.VIP)?.price ?? 0);
   normalSeatPrice = computed(() => this.seats().find(s => s.type === SeatType.Normal)?.price ?? 0);
 
+  ngOnDestroy() {
+    this.seatHub.disconnect();
+  }
+
   selectShowtime(showtime: Showtime) {
     if (this.selectedShowtime()?.id === showtime.id) return;
     this.selectedShowtime.set(showtime);
@@ -91,6 +97,7 @@ export class MovieDetail {
     this.seats.set([]);
     this.bookingError.set('');
     this.isLoadingSeats.set(true);
+
     this.seatService.getByShowtimeId(showtime.id).subscribe({
       next: seats => {
         this.seats.set(seats);
@@ -100,6 +107,13 @@ export class MovieDetail {
         this.bookingError.set('ไม่สามารถโหลดข้อมูลที่นั่งได้ กรุณาลองใหม่อีกครั้ง');
         this.isLoadingSeats.set(false);
       },
+    });
+
+    // เชื่อมต่อ SignalR สำหรับรอบนี้ — update seat status แบบ real-time
+    this.seatHub.connect(showtime.id, (seatId, newStatus) => {
+      this.seats.update(all =>
+        all.map(s => s.id === seatId ? { ...s, status: newStatus as SeatStatus } : s)
+      );
     });
   }
 

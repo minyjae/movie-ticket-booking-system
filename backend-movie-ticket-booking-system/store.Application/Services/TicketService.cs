@@ -14,17 +14,20 @@ public class TicketService : ITicketService
     private readonly ISeatRepository    _seatRepository;
     private readonly ILedgerRepository  _ledgerRepository;
     private readonly AppDbContext       _context;
+    private readonly ISeatNotifier      _seatNotifier;
 
     public TicketService(
         ITicketRepository  ticketRepository,
         ISeatRepository    seatRepository,
         ILedgerRepository  ledgerRepository,
-        AppDbContext       context)
+        AppDbContext       context,
+        ISeatNotifier      seatNotifier)
     {
         _ticketRepository = ticketRepository;
         _seatRepository   = seatRepository;
         _ledgerRepository = ledgerRepository;
         _context          = context;
+        _seatNotifier     = seatNotifier;
     }
 
     public async Task<List<TicketDto>> GetMyTicketsAsync(Guid userId)
@@ -76,6 +79,9 @@ public class TicketService : ITicketService
             await transaction.RollbackAsync();
             throw;
         }
+
+        try { await _seatNotifier.NotifySeatChangedAsync(ticket.ShowtimeId, ticket.SeatId, "Available"); }
+        catch { /* real-time update ล้มเหลวไม่กระทบ cancellation */ }
 
         return MapToDto(ticket);
     }
