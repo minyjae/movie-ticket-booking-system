@@ -18,7 +18,10 @@ public static class DependencyInjection
         // ใช้ timestamp without time zone (เก็บ UTC+7 ตรงๆ ไม่ทำ timezone conversion)
         AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 
-        var connectionString = Environment.GetEnvironmentVariable("POSTGRES_CONNECTION")
+        // Railway injects DATABASE_URL (postgresql://user:pass@host:port/db)
+        // Npgsql supports URI format natively; fallback to POSTGRES_CONNECTION for local dev
+        var connectionString = Environment.GetEnvironmentVariable("DATABASE_URL")
+            ?? Environment.GetEnvironmentVariable("POSTGRES_CONNECTION")
             ?? throw new InvalidOperationException("POSTGRES_CONNECTION is not set.");
 
         services.AddDbContext<AppDbContext>(options =>
@@ -39,10 +42,37 @@ public static class DependencyInjection
         services.AddScoped<IJwtService, JwtService>();
 
         // Redis
+        // Railway injects REDIS_URL (redis://default:pass@host:port)
+        // StackExchange.Redis ไม่รองรับ URI format — แปลงก่อน
+        var redisConnection = ParseRedisConnection();
         services.AddSingleton<IConnectionMultiplexer>(_ =>
-            ConnectionMultiplexer.Connect(
-                Environment.GetEnvironmentVariable("REDIS_CONNECTION")!));
+            ConnectionMultiplexer.Connect(redisConnection));
 
         return services;
+    }
+
+    // แปลง redis://default:pass@host:port → host:port,password=pass
+    private static string ParseRedisConnection()
+    {
+        var redisUrl = Environment.GetEnvironmentVariable("REDIS_URL");
+        if (!string.IsNullOrEmpty(redisUrl))
+        {
+            var uri = new Uri(redisUrl);
+            var host = uri.Host;
+            var port = uri.Port;
+            var password = uri.UserInfo.Split(':').ElementAtOrDefault(1);
+            var isSsl = uri.Scheme == "rediss";
+
+            var parts = new List<string> { $"{host}:{port}" };
+            if (!string.IsNullOrEmpty(password))
+                parts.Add($"password={password}");
+            if (isSsl)
+                parts.Add("ssl=true");
+
+            return string.Join(",", parts);
+        }
+
+        return Environment.GetEnvironmentVariable("REDIS_CONNECTION")
+            ?? throw new InvalidOperationException("REDIS_CONNECTION is not set.");
     }
 }

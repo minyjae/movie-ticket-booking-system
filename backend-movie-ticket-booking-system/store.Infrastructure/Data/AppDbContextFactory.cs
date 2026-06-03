@@ -10,7 +10,8 @@ public class AppDbContextFactory : IDesignTimeDbContextFactory<AppDbContext>
         DotNetEnv.Env.Load();
         AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 
-        var connectionString = Environment.GetEnvironmentVariable("POSTGRES_CONNECTION")
+        var connectionString = Environment.GetEnvironmentVariable("DATABASE_URL")
+            ?? Environment.GetEnvironmentVariable("POSTGRES_CONNECTION")
             ?? throw new InvalidOperationException("POSTGRES_CONNECTION not found in .env");
 
         var optionsBuilder = new DbContextOptionsBuilder<AppDbContext>();
