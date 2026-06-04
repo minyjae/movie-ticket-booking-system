@@ -1,5 +1,6 @@
 import { Component, computed, inject } from '@angular/core';
 import { Router, ActivatedRoute, RouterLink } from '@angular/router';
+import { environment } from '../../../environments/environment';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { map } from 'rxjs';
 import { MovieService } from '../../../app/features/movie/services/movie.service';
@@ -10,6 +11,7 @@ import { MovieService } from '../../../app/features/movie/services/movie.service
   templateUrl: './category.html',
 })
 export class MovieCategory {
+  readonly apiUrl = environment.apiUrl;
   private router = inject(Router);
   private route = inject(ActivatedRoute);
   private movieService = inject(MovieService);

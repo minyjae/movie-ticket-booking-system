@@ -1,5 +1,6 @@
 import { Component, computed, inject } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
+import { environment } from '../../environments/environment';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { MovieService } from '../../app/features/movie/services/movie.service';
 import { Movie as MovieModel } from '../../app/features/movie/models/movie.model';
@@ -16,6 +17,7 @@ interface CategoryGroup {
   styleUrl: './movie.css',
 })
 export class Movie {
+  readonly apiUrl = environment.apiUrl;
   private router = inject(Router);
   private movieService = inject(MovieService);
 

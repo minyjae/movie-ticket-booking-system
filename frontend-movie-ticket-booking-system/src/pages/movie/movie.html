@@ -54,7 +54,7 @@
             >
               <div class="relative overflow-hidden rounded-xl cursor-pointer">
                 <img
-                  [src]="movie.posterUrl ? 'http://localhost:5074' + movie.posterUrl : 'assets/no-poster.svg'"
+                  [src]="movie.posterUrl ? apiUrl + movie.posterUrl : 'assets/no-poster.svg'"
                   [alt]="movie.title"
                   draggable="false"
                   class="w-full h-52 md:h-64 object-cover transition-transform duration-500 group-hover:scale-110 pointer-events-none"

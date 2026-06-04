@@ -3,7 +3,7 @@
   <!-- ─── Hero ──────────────────────────────────────────────── -->
   <div class="relative w-full h-72 md:h-120 overflow-hidden">
     <img
-      [src]="m.posterUrl ? 'http://localhost:5074' + m.posterUrl : 'assets/no-poster.svg'"
+      [src]="m.posterUrl ? apiUrl + m.posterUrl : 'assets/no-poster.svg'"
       class="w-full h-full object-cover scale-105"
       draggable="false"
     />
@@ -12,7 +12,7 @@
 
     <div class="absolute bottom-0 left-0 right-0 px-6 md:px-16 pb-8 flex gap-6 items-end">
       <img
-        [src]="m.posterUrl ? 'http://localhost:5074' + m.posterUrl : 'assets/no-poster.svg'"
+        [src]="m.posterUrl ? apiUrl + m.posterUrl : 'assets/no-poster.svg'"
         class="hidden md:block w-28 lg:w-36 rounded-xl shadow-2xl flex-none border border-white/10 object-cover"
         draggable="false"
       />

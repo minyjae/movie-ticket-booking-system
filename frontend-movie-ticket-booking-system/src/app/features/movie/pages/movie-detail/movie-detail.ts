@@ -1,5 +1,6 @@
 import { Component, computed, inject, OnDestroy, signal } from '@angular/core';
 import { DatePipe, DecimalPipe } from '@angular/common';
+import { environment } from '../../../../../environments/environment';
 import { ActivatedRoute, Router } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { forkJoin, switchMap, map } from 'rxjs';
@@ -28,6 +29,7 @@ interface SeatRow {
   styleUrl: './movie-detail.css',
 })
 export class MovieDetail implements OnDestroy {
+  readonly apiUrl = environment.apiUrl;
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private movieService = inject(MovieService);

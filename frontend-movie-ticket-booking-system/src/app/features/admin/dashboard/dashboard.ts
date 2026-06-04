@@ -3,6 +3,7 @@ import { DatePipe, DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { AuthService } from '../../auth/services/auth.service';
+import { environment } from '../../../../environments/environment';
 import { MovieService } from '../../movie/services/movie.service';
 import { ShowtimeService } from '../../movie/services/showtime.service';
 import { SeatService } from '../../booking/services/seat.service';
@@ -21,6 +22,7 @@ import { NgSelectModule } from '@ng-select/ng-select';
   templateUrl: './dashboard.html',
 })
 export class AdminDashboard {
+  readonly apiUrl = environment.apiUrl;
   private http = inject(HttpClient);
   private auth = inject(AuthService);
   private movieService = inject(MovieService);
@@ -29,8 +31,8 @@ export class AdminDashboard {
   private bannerService = inject(BannerService);
   private screenService = inject(ScreenService);
 
-  private readonly moviesUrl = 'http://localhost:5074/api/movies';
-  private readonly showtimesUrl = 'http://localhost:5074/api/showtimes';
+  private readonly moviesUrl = `${environment.apiUrl}/api/movies`;
+  private readonly showtimesUrl = `${environment.apiUrl}/api/showtimes`;
 
   movies = signal<Movie[]>([]);
   categories = Object.values(MovieCategory);

@@ -1,4 +1,5 @@
 import { Component, effect, ElementRef, inject, ViewChild } from '@angular/core';
+import { environment } from '../../environments/environment';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
 import { Footer } from '../../app/shared/footer/footer';
@@ -12,6 +13,7 @@ import { MovieService } from '../../app/features/movie/services/movie.service';
   styleUrl: './home.css',
 })
 export class Home {
+  readonly apiUrl = environment.apiUrl;
   @ViewChild('movieStrip') movieStrip!: ElementRef<HTMLDivElement>;
 
   private router = inject(Router);
