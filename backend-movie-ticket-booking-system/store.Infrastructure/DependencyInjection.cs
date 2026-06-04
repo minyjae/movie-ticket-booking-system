@@ -18,11 +18,7 @@ public static class DependencyInjection
         // ใช้ timestamp without time zone (เก็บ UTC+7 ตรงๆ ไม่ทำ timezone conversion)
         AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 
-        // Railway injects DATABASE_URL (postgresql://user:pass@host:port/db)
-        // Npgsql supports URI format natively; fallback to POSTGRES_CONNECTION for local dev
-        var connectionString = Environment.GetEnvironmentVariable("DATABASE_URL")
-            ?? Environment.GetEnvironmentVariable("POSTGRES_CONNECTION")
-            ?? throw new InvalidOperationException("POSTGRES_CONNECTION is not set.");
+        var connectionString = ParsePostgresConnection();
 
         services.AddDbContext<AppDbContext>(options =>
             options.UseNpgsql(connectionString));
@@ -49,6 +45,26 @@ public static class DependencyInjection
             ConnectionMultiplexer.Connect(redisConnection));
 
         return services;
+    }
+
+    // แปลง postgresql://user:pass@host:port/db → Host=host;Port=port;Database=db;Username=user;Password=pass
+    private static string ParsePostgresConnection()
+    {
+        var raw = Environment.GetEnvironmentVariable("DATABASE_URL")
+            ?? Environment.GetEnvironmentVariable("POSTGRES_CONNECTION")
+            ?? throw new InvalidOperationException("POSTGRES_CONNECTION is not set.");
+
+        if (raw.StartsWith("postgresql://") || raw.StartsWith("postgres://"))
+        {
+            var uri = new Uri(raw);
+            var userInfo = uri.UserInfo.Split(':');
+            var username = userInfo[0];
+            var password = userInfo.Length > 1 ? Uri.UnescapeDataString(userInfo[1]) : "";
+            var database = uri.AbsolutePath.TrimStart('/');
+            return $"Host={uri.Host};Port={uri.Port};Database={database};Username={username};Password={password}";
+        }
+
+        return raw;
     }
 
     // แปลง redis://default:pass@host:port → host:port,password=pass
