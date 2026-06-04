@@ -11,7 +11,7 @@ using store.Domain.Entities;
 using store.Domain.Enums;
 using store.Application.Interfaces;
 
-DotNetEnv.Env.Load();
+DotNetEnv.Env.NoClobber().Load();
 
 var jwtSecret = Environment.GetEnvironmentVariable("JWT_SECRET")
     ?? throw new InvalidOperationException("JWT_SECRET is not set in .env");
