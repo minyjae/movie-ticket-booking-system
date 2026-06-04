@@ -2,6 +2,7 @@ import { inject, Injectable, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { tap } from 'rxjs';
 import { AuthService } from '../../auth/services/auth.service';
+import { environment } from '../../../../environments/environment';
 
 interface WalletResponse {
   userId: string;
@@ -31,7 +32,7 @@ export interface WalletHistory {
 export class WalletService {
   private http = inject(HttpClient);
   private auth = inject(AuthService);
-  private readonly baseUrl = 'http://localhost:5074/api/wallet';
+  private readonly baseUrl = `${environment.apiUrl}/api/wallet`;
 
   private _balance = signal<number | null>(null);
   balance = this._balance.asReadonly();

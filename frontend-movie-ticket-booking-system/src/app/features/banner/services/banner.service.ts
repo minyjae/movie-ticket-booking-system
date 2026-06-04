@@ -2,6 +2,7 @@ import { inject, Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Banner } from '../models/banner.model';
 import { Observable } from 'rxjs';
+import { environment } from '../../../../environments/environment';
 
 export interface CreateBannerPayload {
   title: string;
@@ -20,7 +21,7 @@ export interface UpdateBannerPayload {
 @Injectable({ providedIn: 'root' })
 export class BannerService {
   private readonly http = inject(HttpClient);
-  private readonly baseUrl = 'http://localhost:5074/api/banners';
+  private readonly baseUrl = `${environment.apiUrl}/api/banners`;
 
   getAll(): Observable<Banner[]> {
     return this.http.get<Banner[]>(this.baseUrl);

@@ -70,7 +70,7 @@
                 <!-- Poster thumbnail -->
                 <div class="w-10 h-14 rounded-md overflow-hidden flex-shrink-0 bg-gray-800">
                   @if (movie.posterUrl) {
-                    <img [src]="'http://localhost:5074' + movie.posterUrl" [alt]="movie.title" class="w-full h-full object-cover" />
+                    <img [src]="apiUrl + movie.posterUrl" [alt]="movie.title" class="w-full h-full object-cover" />
                   } @else {
                     <div class="w-full h-full flex items-center justify-center text-gray-600">
                       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -185,7 +185,7 @@
                         @if (editPosterPreviewUrl()) {
                           <img [src]="editPosterPreviewUrl()" class="w-full h-full object-cover" />
                         } @else if (editingMovie()?.posterUrl) {
-                          <img [src]="'http://localhost:5074' + editingMovie()!.posterUrl" class="w-full h-full object-cover" />
+                          <img [src]="apiUrl + editingMovie()!.posterUrl" class="w-full h-full object-cover" />
                         } @else {
                           <span class="text-gray-600 text-xs">คลิกเพื่อเปลี่ยนโปสเตอร์</span>
                         }
@@ -444,7 +444,7 @@
               >
                 @if (selectedShowtimeMovie()?.posterUrl) {
                   <img
-                    [src]="'http://localhost:5074' + selectedShowtimeMovie()!.posterUrl"
+                    [src]="apiUrl + selectedShowtimeMovie()!.posterUrl"
                     [alt]="selectedShowtimeMovie()!.title"
                     class="w-full h-full object-cover"
                   />
@@ -919,7 +919,7 @@
                 <!-- Banner card -->
                 <div class="relative group">
                   <img
-                    [src]="'http://localhost:5074' + banner.imageUrl"
+                    [src]="apiUrl + banner.imageUrl"
                     [alt]="banner.title"
                     class="w-full h-40 object-cover"
                   />

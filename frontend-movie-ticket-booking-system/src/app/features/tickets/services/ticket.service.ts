@@ -1,6 +1,7 @@
 import { inject, Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../../auth/services/auth.service';
+import { environment } from '../../../../environments/environment';
 
 export interface Ticket {
   id: string;
@@ -19,7 +20,7 @@ export interface Ticket {
 export class TicketService {
   private http = inject(HttpClient);
   private auth = inject(AuthService);
-  private readonly baseUrl = 'http://localhost:5074/api/tickets';
+  private readonly baseUrl = `${environment.apiUrl}/api/tickets`;
 
   private get options() {
     return { headers: { Authorization: `Bearer ${this.auth.getToken()}` } };

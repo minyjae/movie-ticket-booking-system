@@ -2,6 +2,7 @@ import { inject, Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { AuthService } from '../../auth/services/auth.service';
 import { Screen } from '../models/screen.model';
+import { environment } from '../../../../environments/environment';
 
 export interface CreateScreenPayload {
   name: string;
@@ -15,7 +16,7 @@ export interface CreateScreenPayload {
 export class ScreenService {
   private http = inject(HttpClient);
   private auth = inject(AuthService);
-  private readonly baseUrl = 'http://localhost:5074/api/screens';
+  private readonly baseUrl = `${environment.apiUrl}/api/screens`;
 
   private get options() {
     return { headers: { Authorization: `Bearer ${this.auth.getToken()}` } };

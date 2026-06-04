@@ -14,7 +14,7 @@
       @for (banner of banners(); track banner.id) {
         <div class="relative h-full flex-none" [style.width]="slideWidth() + '%'">
           <img
-            [src]="'http://localhost:5074' + banner.imageUrl"
+            [src]="apiUrl + banner.imageUrl"
             [alt]="banner.title"
             draggable="false"
             class="w-full h-full object-cover pointer-events-none"

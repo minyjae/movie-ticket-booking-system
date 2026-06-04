@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import * as signalR from '@microsoft/signalr';
+import { environment } from '../../../../environments/environment';
 
 export type SeatChangedCallback = (seatId: string, status: string) => void;
 
@@ -12,7 +13,7 @@ export class SeatHubService {
     this.disconnect();
 
     this.connection = new signalR.HubConnectionBuilder()
-      .withUrl('http://localhost:5074/hubs/seats')
+      .withUrl(`${environment.apiUrl}/hubs/seats`)
       .withAutomaticReconnect()
       .configureLogging(signalR.LogLevel.Warning)
       .build();

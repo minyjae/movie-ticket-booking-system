@@ -1,6 +1,7 @@
 import { Component, computed, inject, OnDestroy, OnInit, signal } from '@angular/core';
 import { NgClass } from '@angular/common';
 import { BannerService } from '../../services/banner.service';
+import { environment } from '../../../../../environments/environment';
 import { Banner as BannerItem } from '../../models/banner.model';
 
 @Component({
@@ -10,6 +11,7 @@ import { Banner as BannerItem } from '../../models/banner.model';
   styleUrl: './banner.css',
 })
 export class Banner implements OnInit, OnDestroy {
+  readonly apiUrl = environment.apiUrl;
   private readonly bannerService = inject(BannerService);
 
   banners = signal<BannerItem[]>([]);
