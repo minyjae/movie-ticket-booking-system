@@ -5,14 +5,19 @@ public record ShowtimeDto(
     Guid Id,
     Guid MovieId,
     string MovieName,
-    string ScreenId,
+    Guid ScreenId,
     string ScreenName,
     DateTime StartTime,
-    DateTime EndTime
+    DateTime EndTime,
+    bool IsActive
 );
 
 public record CreateShowtimeDto(
     Guid MovieId,
-    string ScreenId,
+    Guid ScreenId,
     DateTime StartTime
+);
+
+public record DeleteShowtimeDto(
+    Guid Id
 );

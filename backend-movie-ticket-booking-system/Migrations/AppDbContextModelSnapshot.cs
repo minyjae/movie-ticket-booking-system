@@ -35,7 +35,6 @@ namespace movie_ticket_booking_system.Migrations
                     b.Property<byte[]>("RowVersion")
                         .IsConcurrencyToken()
                         .IsRequired()
-                        .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("bytea");
 
                     b.Property<string>("SeatCode")
@@ -59,6 +58,47 @@ namespace movie_ticket_booking_system.Migrations
                         .IsUnique();
 
                     b.ToTable("Seats");
+                });
+
+            modelBuilder.Entity("store.Domain.Entities.Banner", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<int>("DisplayOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Genre")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("ImageUrl")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Tagline")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IsDeleted");
+
+                    b.ToTable("Banners");
                 });
 
             modelBuilder.Entity("store.Domain.Entities.LedgerEntry", b =>
@@ -115,6 +155,9 @@ namespace movie_ticket_booking_system.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<string>("PosterUrl")
+                        .HasColumnType("text");
+
                     b.Property<decimal>("Price")
                         .HasColumnType("numeric");
 
@@ -134,6 +177,37 @@ namespace movie_ticket_booking_system.Migrations
                     b.ToTable("Movies");
                 });
 
+            modelBuilder.Entity("store.Domain.Entities.Screen", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int>("NormalRows")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("NormalSeatsPerRow")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("VipRows")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("VipSeatsPerRow")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Screens");
+                });
+
             modelBuilder.Entity("store.Domain.Entities.Showtime", b =>
                 {
                     b.Property<Guid>("Id")
@@ -150,9 +224,8 @@ namespace movie_ticket_booking_system.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<string>("ScreenId")
-                        .IsRequired()
-                        .HasColumnType("text");
+                    b.Property<Guid>("ScreenId")
+                        .HasColumnType("uuid");
 
                     b.Property<string>("ScreenName")
                         .IsRequired()
@@ -165,6 +238,8 @@ namespace movie_ticket_booking_system.Migrations
 
                     b.HasIndex("MovieId");
 
+                    b.HasIndex("ScreenId");
+
                     b.ToTable("Showtimes");
                 });
 
@@ -173,6 +248,12 @@ namespace movie_ticket_booking_system.Migrations
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("CancelledAt")
+                        .HasColumnType("timestamp without time zone");
+
+                    b.Property<bool>("IsCancelled")
+                        .HasColumnType("boolean");
 
                     b.Property<DateTime>("IssuedAt")
                         .HasColumnType("timestamp without time zone");
@@ -291,7 +372,15 @@ namespace movie_ticket_booking_system.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("store.Domain.Entities.Screen", "Screen")
+                        .WithMany("Showtimes")
+                        .HasForeignKey("ScreenId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.Navigation("Movie");
+
+                    b.Navigation("Screen");
                 });
 
             modelBuilder.Entity("store.Domain.Entities.Ticket", b =>
@@ -314,6 +403,11 @@ namespace movie_ticket_booking_system.Migrations
                         .IsRequired();
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("store.Domain.Entities.Screen", b =>
+                {
+                    b.Navigation("Showtimes");
                 });
 
             modelBuilder.Entity("store.Domain.Entities.User", b =>

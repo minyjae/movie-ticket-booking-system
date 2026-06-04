@@ -65,6 +65,21 @@ public class LedgerRepository : ILedgerRepository
         return last?.Id;
     }
 
+    public async Task<(List<LedgerEntry> Entries, int Total)> GetHistoryAsync(Guid userId, int page, int pageSize)
+    {
+        var query = _context.LedgerEntries
+            .Where(e => e.UserId == userId)
+            .OrderByDescending(e => e.CreatedAt);
+
+        var total = await query.CountAsync();
+        var entries = await query
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        return (entries, total);
+    }
+
     public async Task AppendAsync(LedgerEntry entry)
     {
         await _context.LedgerEntries.AddAsync(entry);

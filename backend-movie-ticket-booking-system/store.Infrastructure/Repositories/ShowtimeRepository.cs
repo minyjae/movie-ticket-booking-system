@@ -18,6 +18,11 @@ public class ShowtimeRepository : IShowtimeRepository
     public async Task<Showtime?> GetByIdAsync(Guid id)
         => await _context.Showtimes.FindAsync(id);
 
+    public async Task<List<Showtime>> GetAllAsync()
+        => await _context.Showtimes
+            .OrderByDescending(s => s.StartTime)
+            .ToListAsync();
+
     public async Task<List<Showtime>> GetByMovieIdAsync(Guid movieId)
         => await _context.Showtimes
             .Where(s => s.MovieId == movieId)
@@ -27,5 +32,20 @@ public class ShowtimeRepository : IShowtimeRepository
     {
         await _context.Showtimes.AddAsync(showtime);
         await _context.SaveChangesAsync();
+    }
+
+    public async Task DeleteAsync(Guid id)
+    {
+        var showtime = await _context.Showtimes.FindAsync(id)
+            ?? throw new KeyNotFoundException($"Showtime {id} not found.");
+        _context.Showtimes.Remove(showtime);
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task DeleteByMovieIdAsync(Guid movieId)
+    {
+        await _context.Showtimes
+            .Where(s => s.MovieId == movieId)
+            .ExecuteDeleteAsync();
     }
 }

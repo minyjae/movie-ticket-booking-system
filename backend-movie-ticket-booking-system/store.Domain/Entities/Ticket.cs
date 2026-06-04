@@ -14,6 +14,8 @@ public class Ticket
     public string ReferenceCode { get; private set; } = string.Empty;
     public string QrCodeBase64 { get; private set; } = string.Empty;
     public DateTime IssuedAt { get; private set; }
+    public bool IsCancelled { get; private set; }
+    public DateTime? CancelledAt { get; private set; }
 
     // Navigation Properties
     public User? User { get; private set; }
@@ -42,5 +44,13 @@ public class Ticket
     public void SetQrCode(string qrCodeBase64)
     {
         QrCodeBase64 = qrCodeBase64;
+    }
+
+    public void Cancel()
+    {
+        if (IsCancelled)
+            throw new InvalidOperationException("Ticket is already cancelled.");
+        IsCancelled = true;
+        CancelledAt = TimeZoneInfo.ConvertTimeBySystemTimeZoneId(DateTime.UtcNow, "Asia/Bangkok");
     }
 }

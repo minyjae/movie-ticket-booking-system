@@ -22,6 +22,14 @@ public class ShowtimesController : ControllerBase
         _createValidator = createValidator;
     }
 
+    [HttpGet]                        // GET /api/showtimes  (Admin only)
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> GetAll()
+    {
+        var showtimes = await _showtimeService.GetAllAsync();
+        return Ok(showtimes);
+    }
+
     [HttpGet("{id}")]               // GET /api/showtimes/{id}
     public async Task<IActionResult> GetById(Guid id)
     {
@@ -46,5 +54,13 @@ public class ShowtimesController : ControllerBase
 
         var showtime = await _showtimeService.CreateAsync(dto);
         return CreatedAtAction(nameof(GetById), new { id = showtime.Id }, showtime);
+    }
+
+    [HttpDelete("{id}")]            // DELETE /api/showtimes/{id}
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> Delete(Guid id)
+    {
+        await _showtimeService.DeleteAsync(new DeleteShowtimeDto(id));
+        return NoContent();
     }
 }

@@ -1,5 +1,6 @@
 // store.Application/Services/TicketBookingService.cs
 using Microsoft.EntityFrameworkCore;
+using QRCoder;
 using StackExchange.Redis;
 using store.Application.Interfaces;
 using store.Domain.Entities;
@@ -16,6 +17,7 @@ public class TicketBookingService : ITicketBookingService
     private readonly IShowtimeRepository _showtimeRepository;
     private readonly AppDbContext _context;
     private readonly IConnectionMultiplexer _redis;
+    private readonly ISeatNotifier _seatNotifier;
 
     private static readonly TimeSpan LockDuration = TimeSpan.FromMinutes(5);
 
@@ -25,14 +27,16 @@ public class TicketBookingService : ITicketBookingService
         ITicketRepository ticketRepository,
         IShowtimeRepository showtimeRepository,
         AppDbContext context,
-        IConnectionMultiplexer redis)
+        IConnectionMultiplexer redis,
+        ISeatNotifier seatNotifier)
     {
-        _seatRepository    = seatRepository;
-        _ledgerRepository  = ledgerRepository;
-        _ticketRepository  = ticketRepository;
+        _seatRepository     = seatRepository;
+        _ledgerRepository   = ledgerRepository;
+        _ticketRepository   = ticketRepository;
         _showtimeRepository = showtimeRepository;
-        _context           = context;
-        _redis             = redis;
+        _context            = context;
+        _redis              = redis;
+        _seatNotifier       = seatNotifier;
     }
 
     public async Task<Ticket> BookSeatAsync(Guid userId, Guid seatId, Guid showtimeId)
@@ -99,6 +103,10 @@ public class TicketBookingService : ITicketBookingService
                 throw;
             }
 
+            // Notify clients ที่ subscribe รอบฉายนี้อยู่ (best-effort — ไม่ rollback ถ้า fail)
+            try { await _seatNotifier.NotifySeatChangedAsync(showtimeId, seatId, "Booked"); }
+            catch { /* real-time update ล้มเหลวไม่กระทบ booking */ }
+
             return ticket;
         }
         finally
@@ -112,7 +120,10 @@ public class TicketBookingService : ITicketBookingService
 
     private static string GenerateQrCode(string referenceCode)
     {
-        var bytes = System.Text.Encoding.UTF8.GetBytes(referenceCode);
-        return Convert.ToBase64String(bytes);
+        using var generator = new QRCodeGenerator();
+        using var data = generator.CreateQrCode(referenceCode, QRCodeGenerator.ECCLevel.Q);
+        using var qrCode = new PngByteQRCode(data);
+        var pngBytes = qrCode.GetGraphic(10);
+        return Convert.ToBase64String(pngBytes);
     }
 }

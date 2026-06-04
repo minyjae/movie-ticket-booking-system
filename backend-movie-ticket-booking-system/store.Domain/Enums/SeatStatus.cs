@@ -16,5 +16,6 @@ public enum SeatType
 public enum LedgerEntryType
 {
     Deposit,         // เติมเงิน
-    TicketPurchase   // ซื้อตั๋ว (ติดลบ)
+    TicketPurchase,  // ซื้อตั๋ว (ติดลบ)
+    Refund           // คืนเงินจากยกเลิกตั๋ว (บวก)
 }

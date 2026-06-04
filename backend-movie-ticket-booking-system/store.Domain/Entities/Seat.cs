@@ -23,7 +23,8 @@ public class Seat
             SeatCode   = seatCode,
             Type       = type,
             Price      = price,
-            Status     = SeatStatus.Available
+            Status     = SeatStatus.Available,
+            RowVersion = Guid.NewGuid().ToByteArray()
         };
     }
 
@@ -33,5 +34,15 @@ public class Seat
             throw new InvalidOperationException(
                 $"Seat {SeatCode} is not available. Current: {Status}");
         Status = SeatStatus.Booked;
+        RowVersion = Guid.NewGuid().ToByteArray();
+    }
+
+    public void Restore()
+    {
+        if (Status != SeatStatus.Booked)
+            throw new InvalidOperationException(
+                $"Seat {SeatCode} is not booked. Current: {Status}");
+        Status = SeatStatus.Available;
+        RowVersion = Guid.NewGuid().ToByteArray();
     }
 }

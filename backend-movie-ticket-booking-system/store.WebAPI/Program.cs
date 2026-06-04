@@ -1,6 +1,7 @@
 using store.Application;
 using store.Infrastructure;
 using store.WebAPI.Middleware;
+using store.WebAPI.Hubs;
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
@@ -18,8 +19,10 @@ var jwtSecret = Environment.GetEnvironmentVariable("JWT_SECRET")
 var builder = WebApplication.CreateBuilder(args);
 
 // ➊ ลงทะเบียน Services แยกเป็นกลุ่มตาม Layer
-builder.Services.AddApplication();                        // Application Layer
-builder.Services.AddInfrastructure(); // Infrastructure Layer
+builder.Services.AddApplication();
+builder.Services.AddInfrastructure();
+builder.Services.AddSignalR();
+builder.Services.AddScoped<ISeatNotifier, SeatNotifier>();
 
 // แปลง Enum ให้เป็น string ส่งมาแทน
 builder.Services.AddControllers()
@@ -30,27 +33,30 @@ builder.Services.AddControllers()
     });
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+var frontendUrl = Environment.GetEnvironmentVariable("FRONTEND_URL") ?? "http://localhost:4200";
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("Frontend", policy =>
     {
-        policy.WithOrigins("http://localhost:4200")
+        policy.WithOrigins(frontendUrl)
               .AllowAnyMethod()
-              .AllowAnyHeader();
+              .AllowAnyHeader()
+              .AllowCredentials();   // SignalR WebSocket ต้องการ credentials
     });
 });
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
-        options.MapInboundClaims = false;  // ← ให้ claim "role" ถูก map ตรงๆ กับ [Authorize(Roles=...)]
+        options.MapInboundClaims = false;
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuerSigningKey = true,
             IssuerSigningKey = new SymmetricSecurityKey(
                 Encoding.UTF8.GetBytes(jwtSecret)),
             ValidateIssuer = false,
-            ValidateAudience = false
+            ValidateAudience = false,
+            RoleClaimType = "role"  // ← บอก ASP.NET ว่า role claim ชื่อ "role" ใน JWT
         };
     });
 
@@ -73,6 +79,16 @@ using (var scope = app.Services.CreateScope())
         db.Users.Add(admin);
         db.SaveChanges();
     }
+
+    if (!db.Screens.Any())
+    {
+        db.Screens.AddRange(
+            Screen.Create("โรง 1 (Standard)", vipRows: 2, vipSeatsPerRow: 8,  normalRows: 6, normalSeatsPerRow: 12),
+            Screen.Create("โรง 2 (Standard)", vipRows: 2, vipSeatsPerRow: 8,  normalRows: 6, normalSeatsPerRow: 12),
+            Screen.Create("โรง 3 (IMAX)",     vipRows: 3, vipSeatsPerRow: 10, normalRows: 8, normalSeatsPerRow: 15)
+        );
+        db.SaveChanges();
+    }
 }
 
 // ➌ เพิ่ม Global Exception Middleware (ต้องอยู่ก่อน Middleware อื่น)
@@ -84,10 +100,12 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
 app.UseCors("Frontend");
+app.UseStaticFiles();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+app.MapHub<SeatHub>("/hubs/seats");
 
-app.Run();
+var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
+app.Run($"http://+:{port}");

@@ -33,6 +33,14 @@ public class MovieRepository : IMovieRepository
         await _context.SaveChangesAsync();
     }
 
+    public async Task DeleteAsync(Guid id)
+    {
+        var movie = await _context.Movies.FindAsync(id)
+            ?? throw new KeyNotFoundException($"Movie {id} not found.");
+        _context.Movies.Remove(movie);
+        await _context.SaveChangesAsync();
+    }
+
     public async Task<Movie?> CheckMovieExistAsync(string title)
         => await _context.Movies.FirstOrDefaultAsync(m => m.Title == title.Trim());
 }
