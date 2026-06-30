@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, signal } from '@angular/core';
 import * as signalR from '@microsoft/signalr';
 import { environment } from '../../../../environments/environment';
 
@@ -7,7 +7,7 @@ export type SeatChangedCallback = (seatId: string, status: string) => void;
 @Injectable({ providedIn: 'root' })
 export class SeatHubService {
   private connection: signalR.HubConnection | null = null;
-  isConnected = false;
+  isConnected = signal(false);
 
   connect(showtimeId: string, onSeatChanged: SeatChangedCallback): void {
     this.disconnect();
@@ -21,17 +21,20 @@ export class SeatHubService {
     this.connection.on('SeatStatusChanged', onSeatChanged);
 
     this.connection.onreconnected(() => {
-      this.connection!.invoke('JoinShowtime', showtimeId).catch(() => {});
+      this.isConnected.set(true);
+      this.connection!.invoke('JoinShowtime', showtimeId)
+        .catch(err => console.error('[SeatHub] Failed to rejoin after reconnect:', err));
     });
 
     this.connection
       .start()
       .then(() => {
-        this.isConnected = true;
+        this.isConnected.set(true);
         return this.connection!.invoke('JoinShowtime', showtimeId);
       })
-      .catch(() => {
-        this.isConnected = false;
+      .catch(err => {
+        this.isConnected.set(false);
+        console.error('[SeatHub] Failed to connect:', err);
       });
   }
 
@@ -39,7 +42,7 @@ export class SeatHubService {
     if (this.connection) {
       this.connection.stop().catch(() => {});
       this.connection = null;
-      this.isConnected = false;
+      this.isConnected.set(false);
     }
   }
 }

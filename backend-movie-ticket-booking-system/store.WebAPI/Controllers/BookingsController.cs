@@ -19,6 +19,30 @@ public class BookingsController : ControllerBase
         _bookingService = bookingService;
     }
 
+    [HttpPost("bulk")]                  // POST /api/bookings/bulk
+    public async Task<IActionResult> BookBulk([FromBody] BulkBookingRequestDto dto)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
+            ?? throw new UnauthorizedAccessException("User not found in token.");
+
+        var tickets = await _bookingService.BookSeatsAsync(
+            Guid.Parse(userId),
+            dto.SeatIds,
+            dto.ShowtimeId);
+
+        return Ok(tickets.Select(ticket => new TicketDto(
+            ticket.Id,
+            ticket.MovieName,
+            ticket.SeatCode,
+            ticket.Showtime,
+            ticket.PricePaid,
+            ticket.ReferenceCode,
+            ticket.QrCodeBase64,
+            ticket.IssuedAt,
+            ticket.IsCancelled,
+            ticket.CancelledAt)));
+    }
+
     [HttpPost]                          // POST /api/bookings
     public async Task<IActionResult> Book([FromBody] BookingRequestDto dto)
     {

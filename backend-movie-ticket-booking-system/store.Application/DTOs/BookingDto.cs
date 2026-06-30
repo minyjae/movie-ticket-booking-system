@@ -5,3 +5,8 @@ public record BookingRequestDto(
     Guid SeatId,
     Guid ShowtimeId
 );
+
+public record BulkBookingRequestDto(
+    Guid[] SeatIds,
+    Guid ShowtimeId
+);

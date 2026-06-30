@@ -18,4 +18,8 @@ export class BookingService {
   book(seatId: string, showtimeId: string): Observable<Ticket> {
     return this.http.post<Ticket>(this.baseUrl, { seatId, showtimeId }, this.options);
   }
+
+  bookBulk(seatIds: string[], showtimeId: string): Observable<Ticket[]> {
+    return this.http.post<Ticket[]>(`${this.baseUrl}/bulk`, { seatIds, showtimeId }, this.options);
+  }
 }

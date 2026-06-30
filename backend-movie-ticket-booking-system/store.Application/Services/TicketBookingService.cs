@@ -4,6 +4,7 @@ using QRCoder;
 using StackExchange.Redis;
 using store.Application.Interfaces;
 using store.Domain.Entities;
+using store.Domain.Enums;
 using store.Domain.Interfaces;
 using store.Infrastructure.Data;
 
@@ -116,6 +117,44 @@ public class TicketBookingService : ITicketBookingService
             if (current == lockValue)
                 await db.KeyDeleteAsync(lockKey);
         }
+    }
+
+    public async Task<List<Ticket>> BookSeatsAsync(Guid userId, Guid[] seatIds, Guid showtimeId)
+    {
+        // โหลด seat ทั้งหมดของรอบฉาย แล้ว filter เอาเฉพาะที่ขอมา
+        var allSeats = await _seatRepository.GetByShowtimeAsync(showtimeId);
+        var seatMap = allSeats.ToDictionary(s => s.Id);
+
+        var seats = new List<Seat>();
+        foreach (var id in seatIds)
+        {
+            if (!seatMap.TryGetValue(id, out var seat))
+                throw new KeyNotFoundException($"Seat {id} not found.");
+            seats.Add(seat);
+        }
+
+        // ตรวจล่วงหน้า: ต้องว่างทุกที่ ก่อนจองใดๆ (fail fast)
+        var unavailable = seats.Where(s => s.Status != SeatStatus.Available).ToList();
+        if (unavailable.Count > 0)
+            throw new InvalidOperationException(
+                $"ที่นั่งต่อไปนี้ไม่ว่าง: {string.Join(", ", unavailable.Select(s => s.SeatCode))}");
+
+        // ตรวจล่วงหน้า: ยอดเงินต้องพอสำหรับทุกที่นั่งรวมกัน (fail fast)
+        var total = seats.Sum(s => s.Price);
+        var balance = await _ledgerRepository.GetBalanceAsync(userId);
+        if (balance < total)
+            throw new InvalidOperationException(
+                $"ยอดเงินไม่พอ ต้องการ {total:C} มีในกระเป๋า {balance:C}");
+
+        // จองทีละที่แบบ sequential ใช้ BookSeatAsync ที่มีอยู่แล้ว
+        var tickets = new List<Ticket>();
+        foreach (var seat in seats)
+        {
+            var ticket = await BookSeatAsync(userId, seat.Id, showtimeId);
+            tickets.Add(ticket);
+        }
+
+        return tickets;
     }
 
     private static string GenerateQrCode(string referenceCode)

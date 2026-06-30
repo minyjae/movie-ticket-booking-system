@@ -3,7 +3,42 @@
   (mouseup)="endDrag()"
   (mouseleave)="endDrag()"
 >
-  <h1 class="text-2xl font-bold mb-8">ภาพยนตร์ทั้งหมด</h1>
+  <h1 class="text-2xl font-bold mb-6">ภาพยนตร์ทั้งหมด</h1>
+
+  <!-- Search + Filter -->
+  <div class="mb-8 space-y-3">
+    <input
+      type="text"
+      placeholder="ค้นหาชื่อหนัง..."
+      [value]="searchQuery()"
+      (input)="onSearch($event)"
+      class="w-full max-w-md bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white placeholder-gray-500 text-sm focus:outline-none focus:border-red-500/50 transition-colors"
+    />
+    <div class="flex flex-wrap gap-2 items-center">
+      @for (cat of availableCategories(); track cat) {
+        <button
+          (click)="selectCategory(cat)"
+          [class.bg-red-600]="selectedCategory() === cat"
+          [class.border-red-500]="selectedCategory() === cat"
+          [class.text-white]="selectedCategory() === cat"
+          [class.bg-white/5]="selectedCategory() !== cat"
+          [class.border-white/10]="selectedCategory() !== cat"
+          [class.text-gray-400]="selectedCategory() !== cat"
+          class="text-xs border px-3 py-1.5 rounded-full transition-colors cursor-pointer hover:border-white/30 hover:text-white"
+        >
+          {{ categoryLabel(cat) }}
+        </button>
+      }
+      @if (isFiltering()) {
+        <button
+          (click)="clearFilters()"
+          class="text-xs text-gray-500 hover:text-white underline transition-colors cursor-pointer ml-1"
+        >
+          ล้างตัวกรอง
+        </button>
+      }
+    </div>
+  </div>
 
   <!-- Skeleton -->
   @if (allMovies().length === 0) {
@@ -20,6 +55,16 @@
         </div>
       </div>
     }
+  }
+
+  <!-- Empty state -->
+  @if (allMovies().length > 0 && filteredMovies().length === 0) {
+    <div class="py-20 text-center text-gray-500">
+      <p class="text-lg font-medium text-gray-400">ไม่พบหนังที่ค้นหา</p>
+      <p class="text-sm mt-1">ลองค้นหาด้วยคำอื่น หรือ
+        <button (click)="clearFilters()" class="text-red-400 hover:text-red-300 underline cursor-pointer">ล้างตัวกรอง</button>
+      </p>
+    </div>
   }
 
   <!-- Category strips -->

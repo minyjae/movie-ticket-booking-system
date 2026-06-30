@@ -1,0 +1,99 @@
+@if (isLoading) {
+  <div class="flex flex-col items-center gap-2 py-10">
+    @for (r of [1,2,3,4,5,6,7,8]; track r) {
+      <div class="flex gap-2">
+        @for (c of [1,2,3,4,5,6]; track c) {
+          <div class="h-9 rounded-lg bg-white/5 animate-pulse"
+               [style.width]="r <= 2 ? '80px' : '36px'"></div>
+        }
+      </div>
+    }
+  </div>
+} @else {
+
+  <!-- Seat grid -->
+  <div class="overflow-x-auto pb-4">
+    <div class="flex flex-col gap-2 items-center min-w-max mx-auto">
+
+      <!-- Screen bar -->
+      <div class="flex flex-col items-center w-full mb-8">
+        <div class="w-full h-0.75 rounded-full bg-linear-to-r from-transparent via-gray-400/70 to-transparent" style="box-shadow: 0 2px 20px rgba(200,200,255,0.15)"></div>
+        <p class="text-gray-500 text-xs tracking-[0.3em] uppercase mt-2">จอภาพยนตร์</p>
+      </div>
+
+      @for (row of seatsByRow; track row.rowKey) {
+
+        @if (row.isVip) {
+          <!-- ── VIP Couple Row ── -->
+          <div class="flex items-center gap-3">
+            <div class="flex items-center justify-end gap-1 w-14">
+              <span class="text-[9px] font-black text-yellow-500 tracking-widest leading-none">VIP</span>
+              <span class="text-gray-500 text-xs">{{ row.rowKey }}</span>
+            </div>
+            <div class="flex gap-3">
+              @for (couple of row.couples; track couple[0].id) {
+                <button
+                  (click)="coupleToggled.emit(couple)"
+                  [class]="getCoupleSeatClass(couple[0], couple[1])"
+                  [disabled]="couple[0].status !== SeatStatus.Available || couple[1].status !== SeatStatus.Available"
+                  [title]="couple[0].seatCode + ' + ' + couple[1].seatCode + ' · VIP ฿' + (couple[0].price + couple[1].price)"
+                >
+                  <span class="couple-left">{{ couple[0].seatCode.slice(1) }}</span>
+                  <span class="couple-divider"></span>
+                  <span class="couple-right">{{ couple[1].seatCode.slice(1) }}</span>
+                </button>
+              }
+            </div>
+          </div>
+
+        } @else {
+          <!-- ── Normal Row ── -->
+          <div class="flex items-center gap-3">
+            <div class="flex items-center justify-end w-14">
+              <span class="text-gray-600 text-xs">{{ row.rowKey }}</span>
+            </div>
+            <div class="flex gap-1.5">
+              @for (seat of row.seats; track seat.id) {
+                <button
+                  (click)="seatToggled.emit(seat)"
+                  [class]="getSeatClass(seat)"
+                  [disabled]="seat.status !== SeatStatus.Available"
+                  [title]="seat.seatCode + ' · ฿' + seat.price"
+                >
+                  {{ seat.seatCode.slice(1) }}
+                </button>
+              }
+            </div>
+          </div>
+        }
+
+      }
+
+    </div>
+  </div>
+
+  <!-- Legend -->
+  <div class="flex flex-wrap justify-center gap-6 mt-10 text-xs text-gray-400">
+    <span class="flex items-center gap-2">
+      <span class="couple-seat seat-vip legend-couple pointer-events-none select-none"></span>
+      <span>VIP (คู่) <span class="text-gray-600">฿{{ vipSeatPrice | number }}×2</span></span>
+    </span>
+    <span class="flex items-center gap-2">
+      <span class="seat seat-available legend-single pointer-events-none select-none"></span>
+      <span>ว่าง <span class="text-gray-600">฿{{ normalSeatPrice | number }}</span></span>
+    </span>
+    <span class="flex items-center gap-2">
+      <span class="seat seat-selected legend-single pointer-events-none select-none"></span>
+      เลือกแล้ว
+    </span>
+    <span class="flex items-center gap-2">
+      <span class="seat seat-booked legend-single pointer-events-none select-none"></span>
+      จองแล้ว
+    </span>
+    <span class="flex items-center gap-2">
+      <span class="seat seat-locked legend-single pointer-events-none select-none"></span>
+      กำลังจอง
+    </span>
+  </div>
+
+}

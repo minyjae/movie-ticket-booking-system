@@ -1,9 +1,9 @@
-import { Component, computed, inject, OnDestroy, signal } from '@angular/core';
+import { Component, computed, effect, inject, OnDestroy, signal } from '@angular/core';
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { environment } from '../../../../../environments/environment';
 import { ActivatedRoute, Router } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { forkJoin, switchMap, map } from 'rxjs';
+import { switchMap, map } from 'rxjs';
 import { MovieService } from '../../services/movie.service';
 import { ShowtimeService } from '../../services/showtime.service';
 import { SeatService } from '../../../booking/services/seat.service';
@@ -14,17 +14,13 @@ import { SeatHubService } from '../../../booking/services/seat-hub.service';
 import { Showtime } from '../../models/showtime.model';
 import { Seat, SeatStatus, SeatType } from '../../../booking/models/seat.model';
 import { Ticket } from '../../../booking/models/ticket.model';
-
-interface SeatRow {
-  rowKey: string;
-  seats: Seat[];
-  isVip: boolean;
-  couples: [Seat, Seat][];
-}
+import { SeatMap, SeatRow } from '../../components/seat-map/seat-map';
+import { BookingSummary } from '../../components/booking-summary/booking-summary';
+import { BookingSuccessModal } from '../../components/booking-success-modal/booking-success-modal';
 
 @Component({
   selector: 'app-movie-detail',
-  imports: [DatePipe, DecimalPipe],
+  imports: [DatePipe, DecimalPipe, SeatMap, BookingSummary, BookingSuccessModal],
   templateUrl: './movie-detail.html',
   styleUrl: './movie-detail.css',
 })
@@ -59,6 +55,31 @@ export class MovieDetail implements OnDestroy {
   bookingError = signal('');
   bookedTickets = signal<Ticket[]>([]);
 
+  timeLeft = signal(600);
+  private timerRef: ReturnType<typeof setInterval> | null = null;
+
+  constructor() {
+    effect(() => {
+      const count = this.selectedSeatIds().size;
+      if (count > 0 && this.timerRef === null) {
+        this.timerRef = setInterval(() => {
+          this.timeLeft.update(t => {
+            if (t <= 1) {
+              this.clearTimer();
+              this.selectedSeatIds.set(new Set());
+              this.bookingError.set('เวลาเลือกที่นั่งหมดแล้ว กรุณาเลือกใหม่อีกครั้ง');
+              return 0;
+            }
+            return t - 1;
+          });
+        }, 1000);
+      } else if (count === 0 && this.timerRef !== null) {
+        this.clearTimer();
+        this.timeLeft.set(600);
+      }
+    });
+  }
+
   seatsByRow = computed<SeatRow[]>(() => {
     const grouped = new Map<string, Seat[]>();
     for (const seat of this.seats()) {
@@ -82,7 +103,6 @@ export class MovieDetail implements OnDestroy {
   });
 
   selectedSeats = computed(() => this.seats().filter(s => this.selectedSeatIds().has(s.id)));
-  selectedSeatCodes = computed(() => this.selectedSeats().map(s => s.seatCode).join(', '));
   totalPrice = computed(() => this.selectedSeats().reduce((sum, s) => sum + s.price, 0));
 
   vipSeatPrice = computed(() => this.seats().find(s => s.type === SeatType.VIP)?.price ?? 0);
@@ -90,6 +110,14 @@ export class MovieDetail implements OnDestroy {
 
   ngOnDestroy() {
     this.seatHub.disconnect();
+    this.clearTimer();
+  }
+
+  private clearTimer(): void {
+    if (this.timerRef !== null) {
+      clearInterval(this.timerRef);
+      this.timerRef = null;
+    }
   }
 
   selectShowtime(showtime: Showtime) {
@@ -99,6 +127,8 @@ export class MovieDetail implements OnDestroy {
     this.seats.set([]);
     this.bookingError.set('');
     this.isLoadingSeats.set(true);
+    this.clearTimer();
+    this.timeLeft.set(600);
 
     this.seatService.getByShowtimeId(showtime.id).subscribe({
       next: seats => {
@@ -111,7 +141,6 @@ export class MovieDetail implements OnDestroy {
       },
     });
 
-    // เชื่อมต่อ SignalR สำหรับรอบนี้ — update seat status แบบ real-time
     this.seatHub.connect(showtime.id, (seatId, newStatus) => {
       this.seats.update(all =>
         all.map(s => s.id === seatId ? { ...s, status: newStatus as SeatStatus } : s)
@@ -136,21 +165,6 @@ export class MovieDetail implements OnDestroy {
     this.selectedSeatIds.set(ids);
   }
 
-  getSeatClass(seat: Seat): string {
-    if (this.selectedSeatIds().has(seat.id)) return 'seat seat-selected';
-    if (seat.status === SeatStatus.Booked) return 'seat seat-booked';
-    if (seat.status === SeatStatus.Locked) return 'seat seat-locked';
-    return 'seat seat-available';
-  }
-
-  getCoupleSeatClass(s1: Seat, s2: Seat): string {
-    const base = 'couple-seat ';
-    if (s1.status === SeatStatus.Booked || s2.status === SeatStatus.Booked) return base + 'seat-booked';
-    if (s1.status === SeatStatus.Locked || s2.status === SeatStatus.Locked) return base + 'seat-locked';
-    if (this.selectedSeatIds().has(s1.id) && this.selectedSeatIds().has(s2.id)) return base + 'seat-selected';
-    return base + 'seat-vip';
-  }
-
   bookSeats() {
     if (!this.auth.isLoggedIn()) {
       this.router.navigate(['/login']);
@@ -163,8 +177,8 @@ export class MovieDetail implements OnDestroy {
     this.isBooking.set(true);
     this.bookingError.set('');
 
-    forkJoin(seats.map(s => this.bookingService.book(s.id, showtime.id))).subscribe({
-      next: tickets => {
+    this.bookingService.bookBulk(seats.map(s => s.id), showtime.id).subscribe({
+      next: (tickets: Ticket[]) => {
         const bookedIds = new Set(seats.map(s => s.id));
         this.seats.update(all =>
           all.map(s => bookedIds.has(s.id) ? { ...s, status: SeatStatus.Booked } : s)
@@ -174,7 +188,7 @@ export class MovieDetail implements OnDestroy {
         this.isBooking.set(false);
         this.wallet.loadBalance();
       },
-      error: err => {
+      error: (err: { error: { error?: string; title?: string; errors?: Record<string, string[]> } }) => {
         const body = err.error;
         const message = (typeof body?.error === 'string' ? body.error : null)
           ?? body?.title

@@ -1,9 +1,9 @@
-import { Component, computed, inject } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { environment } from '../../environments/environment';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { MovieService } from '../../app/features/movie/services/movie.service';
-import { Movie as MovieModel } from '../../app/features/movie/models/movie.model';
+import { Movie as MovieModel, MovieCategory } from '../../app/features/movie/models/movie.model';
 
 interface CategoryGroup {
   category: string;
@@ -22,18 +22,54 @@ export class Movie {
   private movieService = inject(MovieService);
 
   allMovies = toSignal(this.movieService.getAll(), { initialValue: [] });
+  searchQuery = signal('');
+
+  selectedCategory = signal<MovieCategory | null>(null);
+
+  filteredMovies = computed(() => {
+    const query = this.searchQuery().toLowerCase().trim();
+    const category = this.selectedCategory();
+
+    return this.allMovies().filter(m => {
+      const matchesQuery = !query || m.title.toLowerCase().includes(query);
+      const matchesCategory = !category || m.category === category;
+      return matchesCategory && matchesQuery;
+    })
+  }) 
 
   moviesByCategory = computed<CategoryGroup[]>(() => {
     const grouped = new Map<string, MovieModel[]>();
-    for (const movie of this.allMovies()) {
+    for (const movie of this.filteredMovies()) {
       if (!grouped.has(movie.category)) grouped.set(movie.category, []);
       grouped.get(movie.category)!.push(movie);
     }
     return [...grouped.entries()].map(([category, movies]) => ({ category, movies }));
   });
 
+  isFiltering = computed(() =>
+    this.searchQuery().trim() !== '' || this.selectedCategory() !== null
+  );
+
+  availableCategories = computed(() => {
+    const cats = new Set(this.allMovies().map(m => m.category));
+    return Object.values(MovieCategory).filter(c => cats.has(c));
+  });
+
   categoryLabel(cat: string): string {
     return cat.replace(/_/g, ' ');
+  }
+
+  onSearch(event: Event) {
+    this.searchQuery.set((event.target as HTMLInputElement).value);
+  }
+
+  selectCategory(cat: MovieCategory) {
+    this.selectedCategory.set(this.selectedCategory() === cat ? null : cat);
+  }
+
+  clearFilters() {
+    this.searchQuery.set('');
+    this.selectedCategory.set(null);
   }
 
   // per-strip drag state
