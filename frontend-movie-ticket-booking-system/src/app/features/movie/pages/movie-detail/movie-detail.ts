@@ -203,4 +203,11 @@ export class MovieDetail implements OnDestroy {
   closeSuccessModal() {
     this.bookedTickets.set([]);
   }
+
+  seatAvailabilityClass(count: number): string {
+    if (count === 0) return 'text-red-500';
+    if (count <= 5) return 'text-orange-400';
+    if (count <= 20) return 'text-yellow-400';
+    return 'text-green-400';
+  }
 }

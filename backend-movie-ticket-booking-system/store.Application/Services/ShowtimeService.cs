@@ -32,19 +32,21 @@ public class ShowtimeService : IShowtimeService
     public async Task<ShowtimeDto?> GetByIdAsync(Guid showtimeId)
     {
         var showtime = await _showtimeRepository.GetByIdAsync(showtimeId);
-        return showtime is null ? null : MapToDto(showtime);
+        if (showtime is null) return null;
+        var available = await _seatRepository.CountAvailableByShowtimeAsync(showtimeId);
+        return MapToDto(showtime, available);
     }
 
     public async Task<List<ShowtimeDto>> GetAllAsync()
     {
         var showtimes = await _showtimeRepository.GetAllAsync();
-        return showtimes.Select(MapToDto).ToList();
+        return await MapToDtosAsync(showtimes);
     }
 
     public async Task<List<ShowtimeDto>> GetByMovieIdAsync(Guid movieId)
     {
         var showtimes = await _showtimeRepository.GetByMovieIdAsync(movieId);
-        return showtimes.Select(MapToDto).ToList();
+        return await MapToDtosAsync(showtimes);
     }
 
     public async Task<ShowtimeDto> CreateAsync(CreateShowtimeDto dto)
@@ -64,11 +66,11 @@ public class ShowtimeService : IShowtimeService
             durationMinutes: (int)movie.Duration.TotalMinutes);
 
         await _showtimeRepository.AddAsync(showtime);
-        await GenerateSeatsAsync(showtime.Id, movie.Price, screen);
-        return MapToDto(showtime);
+        var seatCount = await GenerateSeatsAsync(showtime.Id, movie.Price, screen);
+        return MapToDto(showtime, seatCount);
     }
 
-    private async Task GenerateSeatsAsync(Guid showtimeId, decimal moviePrice, Domain.Entities.Screen screen)
+    private async Task<int> GenerateSeatsAsync(Guid showtimeId, decimal moviePrice, Screen screen)
     {
         var normalPrice = moviePrice;
         var vipPrice    = Math.Round(moviePrice * 2.5m, 2);
@@ -92,6 +94,7 @@ public class ShowtimeService : IShowtimeService
         }
 
         await _seatRepository.AddRangeAsync(seats);
+        return seats.Count;
     }
 
     public async Task DeleteAsync(DeleteShowtimeDto dto)
@@ -101,6 +104,17 @@ public class ShowtimeService : IShowtimeService
         await _showtimeRepository.DeleteAsync(dto.Id);
     }
 
-    private static ShowtimeDto MapToDto(Showtime s) =>
-        new(s.Id, s.MovieId, s.MovieName, s.ScreenId, s.ScreenName, s.StartTime, s.EndTime, s.IsActive);
+    private async Task<List<ShowtimeDto>> MapToDtosAsync(List<Showtime> showtimes)
+    {
+        var result = new List<ShowtimeDto>();
+        foreach (var s in showtimes)
+        {
+            var available = await _seatRepository.CountAvailableByShowtimeAsync(s.Id);
+            result.Add(MapToDto(s, available));
+        }
+        return result;
+    }
+
+    private static ShowtimeDto MapToDto(Showtime s, int availableSeats) =>
+        new(s.Id, s.MovieId, s.MovieName, s.ScreenId, s.ScreenName, s.StartTime, s.EndTime, availableSeats, s.IsActive);
 }

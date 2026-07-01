@@ -1,5 +1,6 @@
 import { inject, Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
+import { tap } from 'rxjs/operators';
 import { Showtime } from '../models/showtime.model';
 import { environment } from '../../../../environments/environment';
 
@@ -15,6 +16,9 @@ export class ShowtimeService {
   }
 
   getByMovieId(movieId: string) {
-    return this.http.get<Showtime[]>(`${this.baseUrl}/movie/${movieId}`);
+    return this.http.get<Showtime[]>(`${this.baseUrl}/movie/${movieId}`)
+      .pipe(
+        tap(data => console.log('showtime', data))
+      )
   }
 }

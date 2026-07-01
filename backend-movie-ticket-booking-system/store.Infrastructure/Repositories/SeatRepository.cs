@@ -1,6 +1,7 @@
 // store.Infrastructure/Repositories/SeatRepository.cs
 using Microsoft.EntityFrameworkCore;
 using store.Domain.Entities;
+using store.Domain.Enums;
 using store.Domain.Interfaces;
 using store.Infrastructure.Data;
 
@@ -22,6 +23,10 @@ public class SeatRepository : ISeatRepository
         => await _context.Seats
             .Where(s => s.ShowtimeId == showtimeId)
             .ToListAsync();
+
+    public async Task<int> CountAvailableByShowtimeAsync(Guid showtimeId)
+        => await _context.Seats
+            .CountAsync(s => s.ShowtimeId == showtimeId && s.Status == SeatStatus.Available);
 
     public async Task AddAsync(Seat seat)
     {

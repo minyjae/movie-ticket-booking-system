@@ -7,4 +7,5 @@ export interface Showtime {
   startTime: string;
   endTime: string;
   isActive: boolean;
+  avaliableSeats: number;
 }

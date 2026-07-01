@@ -9,6 +9,7 @@ public interface IShowtimeRepository
     Task<List<Showtime>> GetAllAsync();
     Task<List<Showtime>> GetByMovieIdAsync(Guid movieId);
     Task AddAsync(Showtime showtime);
+    Task UpdateAsync(Showtime showtime);
     Task DeleteAsync(Guid id);
     Task DeleteByMovieIdAsync(Guid movieId);
 }

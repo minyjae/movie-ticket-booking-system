@@ -34,6 +34,12 @@ public class ShowtimeRepository : IShowtimeRepository
         await _context.SaveChangesAsync();
     }
 
+    public async Task UpdateAsync(Showtime showtime)
+    {
+        _context.Showtimes.Update(showtime);
+        await _context.SaveChangesAsync();
+    }
+
     public async Task DeleteAsync(Guid id)
     {
         var showtime = await _context.Showtimes.FindAsync(id)

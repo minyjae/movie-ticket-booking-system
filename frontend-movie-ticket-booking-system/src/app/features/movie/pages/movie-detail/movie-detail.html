@@ -47,17 +47,23 @@
               (click)="selectShowtime(st)"
               class="showtime-card"
               [class.showtime-card--active]="selectedShowtime()?.id === st.id"
-              [class.opacity-40]="!st.isActive"
+              [class.opacity-50]="!st.isActive"
               [class.cursor-not-allowed]="!st.isActive"
               [disabled]="!st.isActive"
             >
+              <p class="text-xs font-semibold text-gray-300 mb-1 tracking-wide uppercase">{{ st.startTime | date:'d MMM yyyy' }}</p>
               <p class="text-base font-bold text-white">
                 {{ st.startTime | date:'HH:mm' }} – {{ st.endTime | date:'HH:mm' }}
               </p>
               <p class="text-xs text-gray-400 mt-0.5">{{ st.screenName }}</p>
-              <p class="text-xs text-gray-500 mt-0.5">{{ st.startTime | date:'d MMM' }}</p>
               @if (!st.isActive) {
-                <p class="text-xs text-red-500 mt-0.5 font-semibold">หมดเวลา</p>
+                <span class="mt-2 inline-block text-xs font-semibold text-red-400 bg-red-500/10 px-2 py-0.5 rounded-full">
+                  หมดเวลา
+                </span>
+              } @else {
+                <p class="text-xs font-medium mt-2" [class]="seatAvailabilityClass(st.avaliableSeats)">
+                  เหลือ {{ st.avaliableSeats }} ที่นั่ง
+                </p>
               }
             </button>
           }

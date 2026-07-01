@@ -9,6 +9,7 @@ public record ShowtimeDto(
     string ScreenName,
     DateTime StartTime,
     DateTime EndTime,
+    int AvaliableSeats,
     bool IsActive
 );
 

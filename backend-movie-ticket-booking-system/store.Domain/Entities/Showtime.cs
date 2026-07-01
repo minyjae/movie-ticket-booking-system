@@ -13,9 +13,12 @@ public class Showtime
     public bool IsActive =>
         EndTime > TimeZoneInfo.ConvertTimeBySystemTimeZoneId(DateTime.UtcNow, "Asia/Bangkok");
 
+    public int AvaliableSeats { get; private set; }
     // Navigation Properties
     public Movie? Movie { get; private set; }
     public Screen? Screen { get; private set; }
+
+    public void SetAvailableSeats(int count) => AvaliableSeats = count;
 
     private Showtime() {}
 
